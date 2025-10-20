@@ -1,7 +1,7 @@
 models/dino_resnet50_pretrain.pth
 data/OWOD/JPEGImages/
 data/OWOD/Annotations/
-
+trash
 
 
 # Byte-compiled / optimized / DLL files
