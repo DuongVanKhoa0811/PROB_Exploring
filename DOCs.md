@@ -1,1 +1,1 @@
-bash ./run.sh
+bash ./run.sh > trash/logs_0.txt 2>&1

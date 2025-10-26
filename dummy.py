@@ -3,4 +3,4 @@ import shutil
 import wandb
 
 
-wandb.init(project='test')
+wandb.init(project='test', name='bbb')

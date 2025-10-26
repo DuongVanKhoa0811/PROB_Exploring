@@ -142,7 +142,7 @@ def get_args_parser():
     parser.add_argument('--model_type', default='prob', type=str)
     
     # logging
-    parser.add_argument('--wandb_name', default='', type=str)
+    parser.add_argument('--wandb_name', default='test', type=str)
     parser.add_argument('--wandb_project', default='PROB_OWOD', type=str)
     
     # model hyperparameters
