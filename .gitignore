@@ -3,7 +3,7 @@ data/OWOD/JPEGImages/
 data/OWOD/Annotations/
 trash
 wandb
-
+exps
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
