@@ -2,11 +2,11 @@
 
 echo running eval ofnano prob-detr, M-OWODB dataset
 
-set -x
+set -ex
 
-EXP_DIR=exps/MOWODB/PROB
+EXP_DIR=exps/MOWODB/PROB_V1
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_V1
+WANDB_NAME=PROB_MOWODB_EVAL_V1
  
     
 PY_ARGS=${@:1}

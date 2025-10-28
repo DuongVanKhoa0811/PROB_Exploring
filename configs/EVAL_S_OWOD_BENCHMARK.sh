@@ -2,11 +2,11 @@
 
 echo running eval of prob-detr, S-OWODB dataset
 
-set -x
+set -ex
 
-EXP_DIR=exps/SOWODB/PROB
+EXP_DIR=exps/SOWODB/PROB_V1
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_V1
+WANDB_NAME=PROB_OWDETR_EVAL_V1
  
 
 PY_ARGS=${@:1}

@@ -2,7 +2,7 @@
 
 echo running eval of OW-DETR on M-OWODB
 
-set -x
+set -ex
 
 EXP_DIR=exps/SOWODB/OWDETR
 PY_ARGS=${@:1}

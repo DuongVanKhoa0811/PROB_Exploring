@@ -2,11 +2,11 @@
 
 echo running training of prob-detr with random exemplar selection, M-OWODB dataset
 
-set -x
+set -ex
 
-EXP_DIR=exps/MOWODB/PROB_RIL
+EXP_DIR=exps/MOWODB/PROB_RIL_V1
 PY_ARGS=${@:1}
-WANDB_NAME=RIL_PROB_V1
+WANDB_NAME=RIL_PROB_MOWODB_V1
 
 
 python -u main_open_world.py \
