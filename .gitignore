@@ -4,6 +4,7 @@ data/OWOD/Annotations/
 trash
 wandb
 exps
+data/OWOD/ImageSets/TOWOD/PROB_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

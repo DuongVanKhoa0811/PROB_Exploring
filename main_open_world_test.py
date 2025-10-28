@@ -143,7 +143,7 @@ def get_args_parser():
     
     # logging
     parser.add_argument('--wandb_name', default='test', type=str)
-    parser.add_argument('--wandb_project', default='PROB_OWOD', type=str)
+    parser.add_argument('--wandb_project', default='PROB_OWOD_test', type=str)
     
     # model hyperparameters
     parser.add_argument('--obj_loss_coef', default=1, type=float)
