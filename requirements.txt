@@ -18,8 +18,8 @@ pycocotools
 scikit-image
 joblib
 tqdm
-notebook
-pandas
-seaborn
+notebook #
+pandas #
+seaborn #
 numpy
 ipdb
