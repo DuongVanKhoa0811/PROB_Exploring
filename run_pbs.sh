@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -N PROB_MOWODB_V3
-#PBS -q a100
-#PBS -l select=1:ncpus=10:ngpus=2
-#PBS -l walltime=48:00:00
+#PBS -q gold
+#PBS -l select=1:ncpus=8:ngpus=2
+#PBS -l walltime=36:00:00
 #PBS -j oe
 #PBS -o ${PBS_O_WORKDIR}/trash/logs_PROB_MOWODB_V3.log
 
