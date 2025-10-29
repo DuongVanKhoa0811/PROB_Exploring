@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N PROB_MOWODB_V3
-#PBS -q gold
+#PBS -q a100
 #PBS -l select=1:ncpus=10:ngpus=2
 #PBS -l walltime=48:00:00
 #PBS -j oe
