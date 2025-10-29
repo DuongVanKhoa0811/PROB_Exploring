@@ -2,6 +2,7 @@ WANDB_NAME=PROB_WOWODB_V1: 2GPUs, BS 2, lr_drop 40 Done
 WANDB_NAME=PROB_WOWODB_V2: 1GPUs, BS 4, lr_drop 40 Break
 WANDB_NAME=PROB_WOWODB_V3: 2GPUs, BS 4, lr_drop 35 Running Cluster, remember to push the wandb offline
 WANDB_NAME=PROB_OWDETR_V1: 2GPUs, BS 4, lr_drop 35 Running Phat_Duy
+WANDB_NAME=PROB_OWDETR_V2: 1GPUs, BS 6, lr_drop 35 Running Khoa
 
 
 
