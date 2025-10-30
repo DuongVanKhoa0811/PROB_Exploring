@@ -2,9 +2,9 @@ WANDB_NAME=PROB_MOWODB_V1: 2GPUs, BS 2, lr_drop 40 Done Train results is not goo
 WANDB_NAME=PROB_MOWODB_V2: 1GPUs, BS 4, lr_drop 40 Break Train results is not good.
 Queue Cluster, remember to push the wandb offline
 WANDB_NAME=PROB_MOWODB_V3: 2GPUs, BS 4, lr_drop 35 Running
+
 WANDB_NAME=PROB_OWDETR_V1: 2GPUs, BS 4, lr_drop 35 Break Train is likely fine.
 WANDB_NAME=PROB_OWDETR_V2: 1GPUs, BS 6, lr_drop 35 Queue
-
 
 
 Temporary
