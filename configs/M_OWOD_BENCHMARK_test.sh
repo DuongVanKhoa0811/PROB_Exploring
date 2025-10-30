@@ -4,39 +4,39 @@ echo running training of prob-detr, M-OWODB dataset
 
 set -ex
 
-EXP_DIR=exps/MOWODB/PROB_V3
+EXP_DIR=exps/MOWODB/PROB_V3test
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_MOWODB_V3
+WANDB_NAME=PROB_MOWODB_V3test
 BATCH_SIZE=4
 
-python -u main_open_world.py \
-    --output_dir "${EXP_DIR}/t1" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20\
-    --train_set 'owod_t1_train' --test_set 'owod_all_task_test' --epochs 41\
-    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp 1.3\
-    --wandb_name "${WANDB_NAME}_t1" --exemplar_replay_selection --exemplar_replay_max_length 850\
-    --exemplar_replay_dir ${WANDB_NAME} --exemplar_replay_cur_file "learned_owod_t1_ft.txt"\
-    ${PY_ARGS} --batch_size ${BATCH_SIZE}
+# python -u main_open_world.py \
+#     --output_dir "${EXP_DIR}/t1" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20\
+#     --train_set 'owod_t1_train' --test_set 'owod_all_task_test' --epochs 6\
+#     --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp 1.3\
+#     --wandb_name "${WANDB_NAME}_t1" --exemplar_replay_selection --exemplar_replay_max_length 850\
+#     --exemplar_replay_dir ${WANDB_NAME} --exemplar_replay_cur_file "learned_owod_t1_ft.txt"\
+#     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
 
 PY_ARGS=${@:1}
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/t2" --dataset TOWOD --PREV_INTRODUCED_CLS 20 --CUR_INTRODUCED_CLS 20\
-    --train_set 'owod_t2_train' --test_set 'owod_all_task_test' --epochs 51\
+    --train_set 'owod_t2_train' --test_set 'owod_all_task_test' --epochs 7\
     --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp 1.3 --freeze_prob_model\
     --wandb_name "${WANDB_NAME}_t2"\
     --exemplar_replay_selection --exemplar_replay_max_length 1743 --exemplar_replay_dir ${WANDB_NAME}\
     --exemplar_replay_prev_file "learned_owod_t1_ft.txt" --exemplar_replay_cur_file "learned_owod_t2_ft.txt"\
-    --pretrain "${EXP_DIR}/t1/checkpoint0040.pth" --lr 2e-5\
+    --pretrain "${EXP_DIR}/t1/checkpoint0005.pth" --lr 2e-5\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
 
 PY_ARGS=${@:1}
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/t2_ft" --dataset TOWOD --PREV_INTRODUCED_CLS 20 --CUR_INTRODUCED_CLS 20 \
-    --train_set "${WANDB_NAME}/learned_owod_t2_ft" --test_set 'owod_all_task_test' --epochs 111 --lr_drop 40\
+    --train_set "${WANDB_NAME}/learned_owod_t2_ft" --test_set 'owod_all_task_test' --epochs 16 --lr_drop 40\
     --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp 1.3\
     --wandb_name "${WANDB_NAME}_t2_ft"\
-    --pretrain "${EXP_DIR}/t2/checkpoint0050.pth"\
+    --pretrain "${EXP_DIR}/t2/checkpoint0006.pth"\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
     
