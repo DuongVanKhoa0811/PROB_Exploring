@@ -7,5 +7,8 @@ WANDB_NAME=PROB_OWDETR_V2: 1GPUs, BS 6, lr_drop 35 Queue
 
 
 
+WANDB_NAME=PROB_OWDETR_Vtest: 2GPUs, BS 6, lr_drop 35 Queue
+
+
 Temporary
 python -u main_open_world.py --output_dir exps/MOWODB/PROB/t1 --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 41 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --wandb_project --exemplar_replay_selection --exemplar_replay_max_length 850 --exemplar_replay_dir PROB_V1 --exemplar_replay_cur_file learned_owod_t1_ft.txt
