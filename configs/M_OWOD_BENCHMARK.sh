@@ -4,10 +4,10 @@ echo running training of prob-detr, M-OWODB dataset
 
 set -ex
 
-EXP_DIR=exps/MOWODB/PROB_V3
+EXP_DIR=exps/MOWODB/PROB_V4
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_MOWODB_V3
-BATCH_SIZE=4
+WANDB_NAME=PROB_MOWODB_V4
+BATCH_SIZE=6
 
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/t1" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20\
