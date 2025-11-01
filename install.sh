@@ -17,7 +17,6 @@ pip install -r requirements.txt
 
 # Build MSDA
 cd models/ops
-rm -rf build/
 sh ./make.sh
 
 # Test MSDA
