@@ -161,7 +161,7 @@ def get_args_parser():
 
 def main(args):
     import wandb
-    if len(args.wandb_project)>0 and int(os.environ["RANK"]) == 0:
+    if len(args.wandb_project)>0 and "RANK" in os.environ and int(os.environ["RANK"]) == 0:
         if len(args.wandb_name)>0:
             wandb.init(project=args.wandb_project, name=args.wandb_name)
         else:
@@ -169,7 +169,6 @@ def main(args):
         wandb.config = args
     else:
        wandb=None
-    # wandb=None
 
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
