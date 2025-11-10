@@ -53,7 +53,6 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 if 'NC' in k:
                     weight_dict[k] = 0
         
-        import ipdb; ipdb.set_trace()
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
         # reduce losses over all GPUs for logging purposes
 
