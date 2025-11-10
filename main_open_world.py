@@ -176,6 +176,7 @@ def main(args):
     if args.frozen_weights is not None:
         assert args.masks, "Frozen training is meant for segmentation only"
     print(args)
+    import ipdb; ipdb.set_trace()
 
     device = torch.device(args.device)
 
