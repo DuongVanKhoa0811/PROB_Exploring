@@ -24,12 +24,6 @@ WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Running KimCuc
 WANDB_NAME=PROB_OWDETR_V3: 2GPUs, BS 3               Running
 
 
-## exp_obj_train_only branch
-WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Running
-WANDB_NAME=PROB_OWDETR_V3: 2GPUs, BS 3               Running
-
-
-
 
 ## Tmp
 + train: python -u main_open_world.py --output_dir exps/MOWODB/PROB_test/t1 --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 41 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --exemplar_replay_selection --exemplar_replay_max_length 850 --exemplar_replay_dir PROB_MOWODB_V1 --exemplar_replay_cur_file learned_owod_t1_ft.txt --batch_size 3
