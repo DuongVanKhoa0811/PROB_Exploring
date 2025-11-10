@@ -1,5 +1,13 @@
 ## Servers: KimCuc, PhatDuy, 4_A5000, Cluster, NgocPC, PhatPC
 
+## Given the setup on one server, how can I set it up on new servers?
+git clone <...>
+scp -r <...>:<...>/models/dino_resnet50_pretrain.pth ...
+scp -r <...>:<...>/data/OWOD/Annotations ...
+scp -r <...>:<...>/data/OWOD/JPEGImages ...
+install.sh
+login wandb
+
 
 ## Focus task 1
           Configurations                             Status
@@ -8,17 +16,15 @@ WANDB_NAME=PROB_MOWODB_V2: 2GPUs, BS 2               Done
 WANDB_NAME=PROB_MOWODB_V3: 2GPUs, BS 4               Done
 WANDB_NAME=PROB_MOWODB_V4: 1GPUs, BS 6               Done
 
-WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Running 37
+WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
 WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
 
 
-## Given the setup on one server, how can I set it up on new servers?
-git clone <...>
-scp -r <...>:<...>/models/dino_resnet50_pretrain.pth ...
-scp -r <...>:<...>/data/OWOD/Annotations ...
-scp -r <...>:<...>/data/OWOD/JPEGImages ...
-install.sh
-login wandb
+## exp_obj_train_only branch
+WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Running
+WANDB_NAME=PROB_OWDETR_V3: 2GPUs, BS 3               Running
+
+
 
 
 ## Tmp
