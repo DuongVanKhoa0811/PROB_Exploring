@@ -195,6 +195,7 @@ def main(args):
 
     dataset_train, dataset_val = get_datasets(args)
     
+    import ipdb;ipdb.set_trace()
     if args.distributed:
         if args.cache_mode:
             sampler_train = samplers.NodeDistributedSampler(dataset_train)
