@@ -10,6 +10,7 @@ login wandb
 
 
 WANDB_NAME=PROB_MOWODB_Vall: 2GPUs, BS 3               Running Train all task
+WANDB_NAME=PROB_OWDETR_Vall: 2GPUs, BS 3               Running Train all task
 
 ## Focus task 1
           Configurations                             Status
