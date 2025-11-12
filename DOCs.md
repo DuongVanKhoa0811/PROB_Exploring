@@ -9,6 +9,8 @@ install.sh
 login wandb
 
 
+WANDB_NAME=PROB_MOWODB_Vall: 2GPUs, BS 3               Running Train all task
+
 ## Focus task 1
           Configurations                             Status
 WANDB_NAME=PROB_MOWODB_V1: 2GPUs, BS 3               Done
@@ -20,8 +22,8 @@ WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
 WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
 
 ## exp_obj_train_only branch
-WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Running KimCuc
-WANDB_NAME=PROB_OWDETR_V3: 2GPUs, BS 3               Running
+WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done set --obj_loss_coef to 0
+WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done do not calculate the loss_obj_likelihood
 
 
 
