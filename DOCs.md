@@ -1,4 +1,4 @@
-## Servers: KimCuc, PhatDuy, 4_A5000, Cluster, NgocPC, PhatPC
+## Servers: KimCuc, PhatDuy, 4_A5000, Cluster, NgocPC, PhatPC, (LeePC)
 
 ## Given the setup on one server, how can I set it up on new servers?
 git clone <...>
@@ -10,6 +10,8 @@ login wandb
 
 
 WANDB_NAME=PROB_MOWODB_Vall: 2GPUs, BS 3               Running Train all task
+PROB_MOWODB_Vall/learned_owod_t2_ft.txt contains 08_007409, FileNotFoundError: [Errno 2] No such file or directory: './data/OWOD/JPEGImages/08_007409.jpg'
+
 WANDB_NAME=PROB_OWDETR_Vall: 2GPUs, BS 3               Running Train all task
 
 ## Focus task 1
