@@ -4,7 +4,8 @@ import torch
 import numpy as np
 from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
 
-def visualize_batch(data_loader_train, args, num_images=100):
+def visualize_batch(data_loader_train, args, num_images=100,
+                    predifined_img_id=None):
     """
     Visualize images with bounding boxes from data_loader_train
     
@@ -23,11 +24,19 @@ def visualize_batch(data_loader_train, args, num_images=100):
     data_iter = iter(data_loader_train)
     
     list_labels = []
-    
+
+    _range = num_images if predifined_img_id is None else len(data_loader_train)    
     # Process num_images samples
-    for img_idx in range(num_images):
+    for img_idx in range(_range):
+        if img_idx % 100 == 0:
+            print(f"Processing image {img_idx} of {_range}")
+        
         # Get one batch (should be batch size 1)
         samples, targets = next(data_iter)
+        
+        if predifined_img_id:
+            if str(int(targets[0]['image_id']))[4:] not in predifined_img_id:
+                continue
         
         # Assert batch size is 1
         assert len(targets) == 1, f"Expected batch size 1, got {len(targets)}"
@@ -116,14 +125,12 @@ def visualize_batch(data_loader_train, args, num_images=100):
             )
         
         # Save image
-        folder_path = '/home/khoadv/projects/OOD_OD/PROB_Exploring/trash/MOWODB'
+        folder_path = '/home/khoadv/projects/OOD_OD/PROB_Exploring/trash/MOWODB_t3'
         filename = f'train_image_{img_idx}_id_{target["image_id"].item()}_objects_{len(labels)}.png'
         cv2.imwrite(os.path.join(folder_path, filename), img)
         print(f"Saved: {filename}")
     
-    import ipdb;ipdb.set_trace()
-    print('b', len(set(list_labels)))
-    print('c', [class_names[i] for i in set(list_labels)])
-    import ipdb;ipdb.set_trace()
+    print(f"Number of unique classes: {len(set(list_labels))}")
+    print(f"Unique classes: {[class_names[i] for i in set(list_labels)]}")
     
-    print(f"All {num_images} images saved successfully")
+    print(f"Images saved successfully")
