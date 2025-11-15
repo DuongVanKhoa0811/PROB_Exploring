@@ -213,10 +213,6 @@ def main(args):
     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers,
                                  pin_memory=True)
-    from util.visualize_data import visualize_batch
-    predifined_img_id = ['000000154589', '000000412764', '000000057936', '000000191280', '000000092998', '000000293611', '000000107516']
-    visualize_batch(data_loader_train, args, predifined_img_id=predifined_img_id)
-    import ipdb;ipdb.set_trace()
 
     # lr_backbone_names = ["backbone.0", "backbone.neck", "input_proj", "transformer.encoder"]
     def match_name_keywords(n, name_keywords):

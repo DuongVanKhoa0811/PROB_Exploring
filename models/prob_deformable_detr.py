@@ -415,10 +415,11 @@ class SetCriterion(nn.Module):
         return losses
     
     def loss_obj_likelihood(self, outputs, targets, indices, num_boxes):
-        assert "pred_obj" in outputs
-        idx = self._get_src_permutation_idx(indices)
-        pred_obj = outputs["pred_obj"][idx]
-        return  {'loss_obj_ll': torch.clamp(pred_obj, min=self.min_obj).sum()/ num_boxes}
+        # assert "pred_obj" in outputs
+        # idx = self._get_src_permutation_idx(indices)
+        # pred_obj = outputs["pred_obj"][idx]
+        # return  {'loss_obj_ll': torch.clamp(pred_obj, min=self.min_obj).sum()/ num_boxes}
+        return  {'loss_obj_ll': torch.tensor(1).to('cuda')}
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -529,7 +530,8 @@ class PostProcess(nn.Module):
         assert target_sizes.shape[1] == 2
 
         obj_prob = torch.exp(-self.temperature*pred_obj).unsqueeze(-1)
-        prob = obj_prob*out_logits.sigmoid()
+        # prob = obj_prob*out_logits.sigmoid()
+        prob = out_logits.sigmoid()
 
         topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1), self.pred_per_im, dim=1)
         scores = topk_values
