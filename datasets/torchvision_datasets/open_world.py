@@ -300,7 +300,6 @@ class OWDetection(VisionDataset):
             size=torch.as_tensor([int(h), int(w)]),
             iscrowd=torch.zeros(len(instances), dtype=torch.uint8)
         )
-        #import ipdb;ipdb.set_trace()
 
         if self.transforms[-1] is not None:
             img, target = self.transforms[-1](img, target)

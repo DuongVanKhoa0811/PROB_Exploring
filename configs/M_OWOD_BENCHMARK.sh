@@ -83,3 +83,4 @@ python -u main_open_world.py \
 #     --wandb_name "${WANDB_NAME}_t4_ft"\
 #     --pretrain "${EXP_DIR}/t4/checkpoint0190.pth" \
 #     ${PY_ARGS} --batch_size ${BATCH_SIZE}
+
