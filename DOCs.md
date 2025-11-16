@@ -25,8 +25,9 @@ WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
 WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
 
 ## exp_obj_train_only branch
-WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done set --obj_loss_coef to 0
-WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done do not calculate the loss_obj_likelihood
+WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done exp_obj_train_only: Test #2 - Set --obj_loss_coef to zero
+WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done exp_obj_train_only: Test #1 - Freeze the loss loss_obj_likelihood in models/prob_deformable_detr.py
+WANDB_NAME=PROB_MOWODB_V7: 2GPUs, BS 3               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
 
 
 
