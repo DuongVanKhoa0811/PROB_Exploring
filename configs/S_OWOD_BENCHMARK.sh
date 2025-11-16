@@ -16,7 +16,8 @@ python -u main_open_world.py \
     --wandb_name "${WANDB_NAME}_t1" --exemplar_replay_selection --exemplar_replay_max_length 850\
     --exemplar_replay_dir ${WANDB_NAME} --exemplar_replay_cur_file "learned_owdetr_t1_ft.txt"\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
-    
+
+sleep 10    
 
 PY_ARGS=${@:1}
 python -u main_open_world.py \
@@ -29,6 +30,7 @@ python -u main_open_world.py \
     --pretrain "${EXP_DIR}/t1.pth" --lr 2e-5\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
+sleep 10
 
 PY_ARGS=${@:1}
 python -u main_open_world.py \
@@ -39,7 +41,8 @@ python -u main_open_world.py \
     --pretrain "${EXP_DIR}/t2/checkpoint0050.pth"\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
-    
+sleep 10
+
 PY_ARGS=${@:1}
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/t3" --dataset OWDETR --PREV_INTRODUCED_CLS 40 --CUR_INTRODUCED_CLS 20\
@@ -51,7 +54,8 @@ python -u main_open_world.py \
     --pretrain "${EXP_DIR}/t2_ft/checkpoint0120.pth" --lr 2e-5 \
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
-    
+sleep 10
+
 PY_ARGS=${@:1}
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/t3_ft" --dataset OWDETR --PREV_INTRODUCED_CLS 40 --CUR_INTRODUCED_CLS 20 \
@@ -60,7 +64,8 @@ python -u main_open_world.py \
     --wandb_name "${WANDB_NAME}_t3_ft"\
     --pretrain "${EXP_DIR}/t3/checkpoint0130.pth"\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
-    
+
+sleep 10    
     
 PY_ARGS=${@:1}
 python -u main_open_world.py \
@@ -73,7 +78,8 @@ python -u main_open_world.py \
     --num_inst_per_class 40\
     --pretrain "${EXP_DIR}/t3_ft/checkpoint0200.pth" --lr 2e-5\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
-    
+
+sleep 10
     
 PY_ARGS=${@:1}
 python -u main_open_world.py \
