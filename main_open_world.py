@@ -247,6 +247,32 @@ def main(args):
                                       weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
+
+    # Freeze all parameters except prob_obj_head and feature_projector
+    print("Freezing all model parameters except prob_obj_head and feature_projector...")
+
+    # Step 1: Freeze everything
+    for name, param in model_without_ddp.named_parameters():
+        param.requires_grad = False
+
+    # Step 2: Unfreeze prob_obj_head
+    if hasattr(model_without_ddp, 'prob_obj_head'):
+        for name, param in model_without_ddp.prob_obj_head.named_parameters():
+            param.requires_grad = True
+            print(f"Unfrozen: prob_obj_head.{name}")
+
+    # Step 3: Unfreeze feature_projector
+    if hasattr(model_without_ddp, 'feature_projector'):
+        for name, param in model_without_ddp.feature_projector.named_parameters():
+            param.requires_grad = True
+            print(f"Unfrozen: feature_projector.{name}")
+
+    # Verify what's trainable
+    trainable_params = sum(p.numel() for p in model_without_ddp.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model_without_ddp.parameters())
+    print(f"Trainable parameters: {trainable_params:,} / {total_params:,} ({100*trainable_params/total_params:.2f}%)")
+    
+
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
@@ -361,7 +387,7 @@ def main(args):
                     'epoch': epoch,
                     'args': args,
                 }, checkpoint_path)
-            
+        
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,

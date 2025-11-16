@@ -117,6 +117,27 @@ class FullProbObjectnessHead(nn.Module):
         return self.mahalanobis(x)
 
 
+class FeatureProjector(nn.Module):
+    def __init__(self, dim=256, hidden_dim=512, dropout=0.1):
+        super().__init__()
+        self.fc1 = nn.Linear(dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, dim)
+        self.norm = nn.LayerNorm(dim)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.ReLU()
+    
+    def forward(self, x):
+        identity = x
+        x = self.fc1(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.dropout(x)
+        x = identity + x  # Residual connection
+        x = self.norm(x)
+        return x
+    
+
 class DeformableDETR(nn.Module):
     """ This is the Deformable DETR module that performs object detection """
     def __init__(self, backbone, transformer, num_classes, num_queries, num_feature_levels,
@@ -140,6 +161,7 @@ class DeformableDETR(nn.Module):
         self.class_embed = nn.Linear(hidden_dim, num_classes)
         self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
         self.prob_obj_head = ProbObjectnessHead(hidden_dim)
+        self.feature_projector = FeatureProjector(dim=hidden_dim, hidden_dim=hidden_dim*2) #
 
         self.num_feature_levels = num_feature_levels
         if not two_stage:
@@ -186,6 +208,7 @@ class DeformableDETR(nn.Module):
             self.class_embed = _get_clones(self.class_embed, num_pred)
             self.bbox_embed = _get_clones(self.bbox_embed, num_pred)
             self.prob_obj_head =  _get_clones(self.prob_obj_head, num_pred)
+            self.feature_projector =  _get_clones(self.feature_projector, num_pred) #
             nn.init.constant_(self.bbox_embed[0].layers[-1].bias.data[2:], -2.0)
             # hack implementation for iterative bounding box refinement
             self.transformer.decoder.bbox_embed = self.bbox_embed
@@ -194,6 +217,7 @@ class DeformableDETR(nn.Module):
             self.class_embed = nn.ModuleList([self.class_embed for _ in range(num_pred)])
             self.bbox_embed = nn.ModuleList([self.bbox_embed for _ in range(num_pred)])
             self.prob_obj_head = nn.ModuleList([self.prob_obj_head for _ in range(num_pred)])
+            self.feature_projector = nn.ModuleList([self.feature_projector for _ in range(num_pred)]) #
             self.transformer.decoder.bbox_embed = None
         if two_stage:
             # hack implementation for two-stage
@@ -250,16 +274,19 @@ class DeformableDETR(nn.Module):
         outputs_coords = []
         outputs_objectnesses = []
 
+        hs_proj = [] #
         for lvl in range(hs.shape[0]):
+            hs_proj.append(self.feature_projector[lvl](hs[lvl])) #
+            
             if lvl == 0:
                 reference = init_reference
             else:
                 reference = inter_references[lvl - 1]
             reference = inverse_sigmoid(reference)
-            outputs_class = self.class_embed[lvl](hs[lvl])
-            outputs_objectness = self.prob_obj_head[lvl](hs[lvl])
+            outputs_class = self.class_embed[lvl](hs_proj[lvl])
+            outputs_objectness = self.prob_obj_head[lvl](hs_proj[lvl])
 
-            tmp = self.bbox_embed[lvl](hs[lvl])
+            tmp = self.bbox_embed[lvl](hs_proj[lvl])
             if reference.shape[-1] == 4:
                 tmp += reference
             else:
