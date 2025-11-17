@@ -4,7 +4,7 @@ echo running eval ofnano prob-detr, M-OWODB dataset
 
 set -ex
 
-EXP_DIR=exps/MOWODB/PROB_V8_0
+EXP_DIR=exps/MOWODB/PROB_V8_1
 PY_ARGS=${@:1}
  
     
