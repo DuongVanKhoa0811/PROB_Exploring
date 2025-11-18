@@ -27,7 +27,7 @@ python -u main_open_world.py \
     --wandb_name "${WANDB_NAME}_t2"\
     --exemplar_replay_selection --exemplar_replay_max_length 1679 --exemplar_replay_dir ${WANDB_NAME}\
     --exemplar_replay_prev_file "learned_owdetr_t1_ft.txt" --exemplar_replay_cur_file "learned_owdetr_t2_ft.txt"\
-    --pretrain "${EXP_DIR}/t1.pth" --lr 2e-5\
+    --pretrain "${EXP_DIR}/t1/checkpoint0040.pth" --lr 2e-5\
     ${PY_ARGS} --batch_size ${BATCH_SIZE}
     
 sleep 10
