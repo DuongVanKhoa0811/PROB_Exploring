@@ -4,7 +4,7 @@ echo running eval of prob-detr, S-OWODB dataset
 
 set -ex
 
-EXP_DIR=exps/SOWODB/PROB_V1
+EXP_DIR=exps/SOWODB/PROB_Vall
 PY_ARGS=${@:1}
  
 
