@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N PROB
 #PBS -q gold
-#PBS -l select=1:ncpus=8:ngpus=4:mem=64gb
+#PBS -l select=1:ncpus=8:ngpus=8:mem=64gb
 #PBS -l walltime=99:00:00
 #PBS -j oe
 #PBS -o /home/users/vankhoa_duong/projects/OOD_OD/PROB_Exploring/logs/output.log
@@ -10,4 +10,4 @@ cd /home/users/vankhoa_duong/projects/OOD_OD/PROB_Exploring
 source ~/.bashrc
 conda activate prob
 
-bash run.sh > logs/logs_PROB_MOWODB_V9.txt 2>&1
+bash run.sh > logs/logs_PROB_MOWODB_V10.txt 2>&1

@@ -20,6 +20,7 @@ WANDB_NAME=PROB_MOWODB_V2: 2GPUs, BS 2               Done
 WANDB_NAME=PROB_MOWODB_V3: 2GPUs, BS 4               Done
 WANDB_NAME=PROB_MOWODB_V4: 1GPUs, BS 6               Done
 WANDB_NAME=PROB_MOWODB_V9: 4GPUs, BS 5               Done
+WANDB_NAME=PROB_MOWODB_V10: 8GPUs, BS 5               Done
 
 WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
 WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
