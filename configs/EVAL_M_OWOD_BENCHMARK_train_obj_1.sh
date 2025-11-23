@@ -4,7 +4,7 @@ echo running eval ofnano prob-detr, M-OWODB dataset
 
 set -ex
 
-EXP_DIR=exps/MOWODB/PROB_V8_1
+EXP_DIR=exps/MOWODB/PROB_V12_1
 PY_ARGS=${@:1}
 sleep 10    
 python -u main_open_world.py \
@@ -14,7 +14,7 @@ python -u main_open_world.py \
     --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
     ${PY_ARGS}
     
-EXP_DIR=exps/MOWODB/PROB_V8_1_seed_52
+EXP_DIR=exps/MOWODB/PROB_V12_1_seed_52
 PY_ARGS=${@:1}
 sleep 10    
 python -u main_open_world.py \
@@ -24,7 +24,7 @@ python -u main_open_world.py \
     --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project "" --seed 52\
     ${PY_ARGS}
     
-EXP_DIR=exps/MOWODB/PROB_V8_1_seed_62
+EXP_DIR=exps/MOWODB/PROB_V12_1_seed_62
 PY_ARGS=${@:1}
 sleep 10    
 python -u main_open_world.py \
