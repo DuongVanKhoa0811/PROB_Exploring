@@ -29,8 +29,9 @@ WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
 WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done exp_obj_train_only: Test #2 - Set --obj_loss_coef to zero
 WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done exp_obj_train_only: Test #1 - Freeze the loss loss_obj_likelihood in models/prob_deformable_detr.py
 WANDB_NAME=PROB_MOWODB_V7: 2GPUs, BS 3               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
-WANDB_NAME=PROB_MOWODB_V8_0: 2GPUs, BS 3             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules 5 epochs
-WANDB_NAME=PROB_MOWODB_V8_1: 2GPUs, BS 3             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules 10 epochs
+WANDB_NAME=PROB_MOWODB_V8_<>: 2GPUs, BS 3             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs
+WANDB_NAME=PROB_MOWODB_V11: 8GPUs, BS 5               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
+WANDB_NAME=PROB_MOWODB_V12_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs
 
 
 
