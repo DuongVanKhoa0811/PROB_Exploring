@@ -4,9 +4,9 @@ echo running training of prob-detr, M-OWODB dataset
 
 set -ex
 
-EXP_DIR=exps/MOWODB/PROB_V11
+EXP_DIR=exps/MOWODB/PROB_V13
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_MOWODB_V11
+WANDB_NAME=PROB_MOWODB_V13
 BATCH_SIZE=5
 
 python -u main_open_world.py \
@@ -15,7 +15,7 @@ python -u main_open_world.py \
     --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp 1.3\
     --wandb_name "${WANDB_NAME}_t1" --exemplar_replay_selection --exemplar_replay_max_length 850\
     --exemplar_replay_dir ${WANDB_NAME} --exemplar_replay_cur_file "learned_owod_t1_ft.txt"\
-    ${PY_ARGS} --batch_size ${BATCH_SIZE}
+    ${PY_ARGS} --batch_size ${BATCH_SIZE} --freeze_prob_model
     
 
 # PY_ARGS=${@:1}
