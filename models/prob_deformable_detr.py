@@ -283,10 +283,10 @@ class DeformableDETR(nn.Module):
             else:
                 reference = inter_references[lvl - 1]
             reference = inverse_sigmoid(reference)
-            outputs_class = self.class_embed[lvl](hs_proj[lvl])
+            outputs_class = self.class_embed[lvl](hs[lvl])
             outputs_objectness = self.prob_obj_head[lvl](hs_proj[lvl])
 
-            tmp = self.bbox_embed[lvl](hs_proj[lvl])
+            tmp = self.bbox_embed[lvl](hs[lvl])
             if reference.shape[-1] == 4:
                 tmp += reference
             else:
@@ -370,11 +370,13 @@ class SetCriterion(nn.Module):
         loss_ce = sigmoid_focal_loss(src_logits, target_classes_onehot, num_boxes, alpha=self.focal_alpha, 
                                      num_classes=self.num_classes, empty_weight=self.empty_weight) * src_logits.shape[1]
 
-        losses = {'loss_ce': loss_ce}
+        # losses = {'loss_ce': loss_ce}
+        losses = {'loss_ce': torch.tensor(1).to('cuda')}
 
         if log:
             # TODO this should probably be a separate loss, not hacked in this one here
             losses['class_error'] = 100 - accuracy(src_logits[idx], target_classes_o)[0]
+        
         return losses
 
     @torch.no_grad()
@@ -404,12 +406,14 @@ class SetCriterion(nn.Module):
         loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
 
         losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
+        # losses['loss_bbox'] = loss_bbox.sum() / num_boxes
+        losses['loss_bbox'] = torch.tensor(1).to('cuda')
 
         loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
             box_ops.box_cxcywh_to_xyxy(src_boxes),
             box_ops.box_cxcywh_to_xyxy(target_boxes)))
-        losses['loss_giou'] = loss_giou.sum() / num_boxes
+        # losses['loss_giou'] = loss_giou.sum() / num_boxes
+        losses['loss_giou'] = torch.tensor(1).to('cuda')
         return losses
 
     def loss_masks(self, outputs, targets, indices, num_boxes):
