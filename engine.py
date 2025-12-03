@@ -26,6 +26,9 @@ from util.plot_utils import plot_prediction
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
+from models.prob_extract_obj_features import extract_obj, featureTracker, save_obj_features
+import h5py
+
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -104,7 +107,10 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     header = 'Test:'
     iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessors.keys())
     coco_evaluator = OWEvaluator(base_ds, iou_types, args=args)
- 
+    
+    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V15_1_seed_52.h5', 'w')
+    tracker = featureTracker(model, variant='DDETR')
+    
     panoptic_evaluator = None
     if 'panoptic' in postprocessors.keys():
         panoptic_evaluator = PanopticEvaluator(
@@ -117,6 +123,10 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         outputs = model(samples)
+        
+        invalid_cls_logits = list(range(args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS, args.num_classes-1))
+        obj_features = extract_obj(outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, pred_per_im=100)
+        save_obj_features(obj_features, id_file, index=0)        
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
         results = postprocessors['bbox'](outputs, orig_target_sizes)
@@ -137,6 +147,8 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
                 res_pano[i]["file_name"] = file_name
  
             panoptic_evaluator.update(res_pano)
+ 
+    id_file.close()
  
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()

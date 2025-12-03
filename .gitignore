@@ -1,6 +1,7 @@
 models/dino_resnet50_pretrain.pth
 data/OWOD/JPEGImages/
 data/OWOD/Annotations/
+data/OWOD/ObjFeatures/
 trash
 wandb
 exps
