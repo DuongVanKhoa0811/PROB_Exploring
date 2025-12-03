@@ -25,21 +25,6 @@ WANDB_NAME=PROB_MOWODB_V10: 8GPUs, BS 5               Done
 WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
 WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
 
-## exp_obj_train_only branch
-WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done exp_obj_train_only: Test #2 - Set --obj_loss_coef to zero
-WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done exp_obj_train_only: Test #1 - Freeze the loss loss_obj_likelihood in models/prob_deformable_detr.py
-WANDB_NAME=PROB_MOWODB_V7: 2GPUs, BS 3               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
-WANDB_NAME=PROB_MOWODB_V8_<>: 2GPUs, BS 3             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V7
-WANDB_NAME=PROB_MOWODB_V11: 8GPUs, BS 5               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
-WANDB_NAME=PROB_MOWODB_V12_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V11
-WANDB_NAME=PROB_MOWODB_V13: 8GPUs, BS 5               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction + --freeze_prob_model
-WANDB_NAME=PROB_MOWODB_V14_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V13
-WANDB_NAME=PROB_MOWODB_V15_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
 
-
-
-## Tmp
-+ train: python -u main_open_world.py --output_dir exps/MOWODB/PROB_test/t1 --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 41 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --exemplar_replay_selection --exemplar_replay_max_length 850 --exemplar_replay_dir PROB_MOWODB_V1 --exemplar_replay_cur_file learned_owod_t1_ft.txt --batch_size 3
-+ train: python -u main_open_world.py --output_dir exps/SOWODB/PROB_V1/t1 --dataset OWDETR --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 19 --train_set owdetr_t1_train --test_set owdetr_test --epochs 41 --lr_drop 31 --model_type prob --obj_loss_coef 1e-3 --obj_temp 1.3 --exemplar_replay_selection --exemplar_replay_max_length 850 --exemplar_replay_dir PROB_OWDETR_V1 --exemplar_replay_cur_file learned_owdetr_t1_ft.txt --batch_size 6
-
-+ eval: python -u main_open_world.py --output_dir exps/MOWODB/PROB_test/eval --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 191 --lr_drop 35 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --pretrain exps/MOWODB/PROB_test/t1.pth --eval
+## PROB Extract Obj Features
+python -u main_open_world.py --output_dir exps/MOWODB/PROB_V10/eval --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 191 --lr_drop 35 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --pretrain exps/MOWODB/PROB_V10/t1.pth --eval --wandb_project '' --batch_size 1
