@@ -4,6 +4,7 @@ import numpy as np
 from torchvision.ops import roi_align
 from functools import partial
 from itertools import combinations
+from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
 
 
 threshold = 0.5
@@ -252,7 +253,7 @@ class featureTracker():
         self.gradients = [0] * len(self.gradients)
 
 
-def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im):
+def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, dataset_name):
     
     examples_top_query_features = {'decoder_object_queries': {hook_names[i]: [] for i in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1)}}
         
@@ -263,10 +264,11 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im):
         ### Collect topk result
         out_logits, pred_obj = outputs['pred_logits'], outputs['pred_obj']
         out_logits[:,:, invalid_cls_logits] = -10e10
-        obj_prob = torch.exp(temperature*pred_obj).unsqueeze(-1)
+        obj_prob = torch.exp(-temperature*pred_obj).unsqueeze(-1)
         prob = obj_prob*out_logits.sigmoid()
         topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1), pred_per_im, dim=1)
         topk_query_index = topk_indexes // out_logits.shape[2]
+        labels = topk_indexes % out_logits.shape[2]
         layers_topk_query_features = [] # LxBx100xC
         
         # Normal task
@@ -277,7 +279,11 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im):
         scores = topk_values
         for batch_idx in range(outputs['pred_logits'].shape[0]):
             scores_example_mask = scores[batch_idx] > threshold
-            import ipdb; ipdb.set_trace()
+            
+            assert batch_idx == 0
+            no_objects = bool(scores_example_mask.sum() < 1)
+            class_name = [VOC_COCO_CLASS_NAMES[dataset_name][int(label.item())] for label in labels[batch_idx][scores_example_mask]]
+            
             example_top_query_features = [] # L x N_objects x C
             for i_layer_topk_query_features in layers_topk_query_features:
                 example_top_query_features.append(i_layer_topk_query_features[batch_idx][scores_example_mask])
@@ -288,7 +294,8 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im):
     ########################################################################################
     tracker.flush_features()
     
-    return examples_top_query_features
+    return examples_top_query_features, no_objects, class_name
+
 
 def save_obj_features(features, dset_file, index):
     group = dset_file.create_group(f'{index}')

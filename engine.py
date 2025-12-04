@@ -108,8 +108,10 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessors.keys())
     coco_evaluator = OWEvaluator(base_ds, iou_types, args=args)
     
-    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10.h5', 'w')
+    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10_tmp.h5', 'w')
+    class_name_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10_class_name_tmp.h5', 'w')
     tracker = featureTracker(model, variant='DDETR')
+    save_idx = 0
     
     panoptic_evaluator = None
     if 'panoptic' in postprocessors.keys():
@@ -125,8 +127,11 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         outputs = model(samples)
         
         invalid_cls_logits = list(range(args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS, args.num_classes-1))
-        obj_features = extract_obj(outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, pred_per_im=100)
-        save_obj_features(obj_features, id_file, index=0)        
+        obj_features, no_objects, class_name = extract_obj(outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, pred_per_im=100, dataset_name=args.dataset)
+        if not no_objects: 
+            save_obj_features(obj_features, id_file, index=save_idx)   
+            class_name_file.create_dataset(f'{save_idx}', data=class_name) 
+            save_idx += 1
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
         results = postprocessors['bbox'](outputs, orig_target_sizes)
@@ -149,6 +154,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             panoptic_evaluator.update(res_pano)
  
     id_file.close()
+    class_name_file.close()
  
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
