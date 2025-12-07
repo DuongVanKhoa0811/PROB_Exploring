@@ -576,12 +576,14 @@ def load_obj_features():
 
 
 def random_sampling(data, labels, m):
+    np.random.seed(42)
     indices = np.random.choice(data.shape[0], m, replace=False)
     sampled_data = data[indices]
     sampled_labels = labels[indices]
     return sampled_data, sampled_labels
 
 def random_sampling_except_unknown(data, labels, m):
+    np.random.seed(42)
     known_indices = np.where(labels != 'unknown')[0]
     known_indices = np.random.choice(known_indices, m, replace=False)
     sampled_data = data[known_indices]
@@ -592,6 +594,8 @@ def random_sampling_except_unknown(data, labels, m):
 def tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_function, save_path_lambda, super_class_transform=None):
 
         for subkey, obj_features in layers_obj_features.items():
+            if '_in' in subkey: continue
+            
             print(subkey, layers_obj_features[subkey].shape)
 
             sampled_data, sampled_labels = random_sampling_function(layers_obj_features[subkey], layers_obj_features_class_name, m=5000)
@@ -640,9 +644,9 @@ def tsne_visualization(layers_obj_features, layers_obj_features_class_name, rand
 
 if __name__ == '__main__':
     
-    # 1. TSNE Visualization
-    # layers_obj_features, layers_obj_features_class_name = load_obj_features()
-    # tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}.png')
+    # 1.0 TSNE Visualization
+    layers_obj_features, layers_obj_features_class_name = load_obj_features()
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}.png')
 
     # 1.1 TSNE Visualization for super-class
     class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
@@ -651,9 +655,17 @@ if __name__ == '__main__':
     layers_obj_features, layers_obj_features_class_name = load_obj_features()
     tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_super_class.png', super_class_transform)
 
-    # Hyperbolic visualization
-    # layers_obj_features, layers_obj_features_class_name = load_obj_features()
-    # hyperbolic_features = to_hyperbolic(layers_obj_features)
-    # tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_hyperbolic.png')
+    # 1.2 Hyperbolic visualization
+    layers_obj_features, layers_obj_features_class_name = load_obj_features()
+    hyperbolic_features = to_hyperbolic(layers_obj_features)
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_hyperbolic.png')
+    
+    # 1.3 Hyperbolic visualization for super-class
+    class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
+    hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
+    super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
+    layers_obj_features, layers_obj_features_class_name = load_obj_features()
+    hyperbolic_features = to_hyperbolic(layers_obj_features)
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_hyperbolic_super_class.png', super_class_transform)
     
     pass
