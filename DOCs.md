@@ -1,41 +1,40 @@
 ## Servers: KimCuc, PhatDuy, 4_A5000, Cluster, NgocPC, PhatPC, (LeePC)
 
 ## Given the setup on one server, how can I set it up on new servers?
-git clone <...>
-scp -r <...>:<...>/models/dino_resnet50_pretrain.pth ...
-scp -r <...>:<...>/data/OWOD/Annotations ...
-scp -r <...>:<...>/data/OWOD/JPEGImages ...
-install.sh
-login wandb
+- git clone <...>
+- scp -r <...>:<...>/models/dino_resnet50_pretrain.pth ...
+- scp -r <...>:<...>/data/OWOD/Annotations ...
+- scp -r <...>:<...>/data/OWOD/JPEGImages ...
+- install.sh
+- login wandb
 
 
 ## Replicated results
-WANDB_NAME=PROB_MOWODB_Vall: 2GPUs, BS 3               Done Train all task, PROB_MOWODB_Vall/learned_owod_t2_ft.txt contains 08_007409, FileNotFoundError: [Errno 2] No such file or directory: './data/OWOD/JPEGImages/08_007409.jpg'
-WANDB_NAME=PROB_OWDETR_Vall: 2GPUs, BS 3               Running Train all task
+- WANDB_NAME=PROB_MOWODB_Vall: 2GPUs, BS 3               Done Train all task, PROB_MOWODB_Vall/learned_owod_t2_ft.txt contains 08_007409, FileNotFoundError: [Errno 2] No such file or directory: './data/OWOD/JPEGImages/08_007409.jpg'
+- WANDB_NAME=PROB_OWDETR_Vall: 2GPUs, BS 3               Running Train all task
 
 ## Focus task 1
           Configurations                             Status
-WANDB_NAME=PROB_MOWODB_V1: 2GPUs, BS 3               Done
-WANDB_NAME=PROB_MOWODB_V2: 2GPUs, BS 2               Done
-WANDB_NAME=PROB_MOWODB_V3: 2GPUs, BS 4               Done
-WANDB_NAME=PROB_MOWODB_V4: 1GPUs, BS 6               Done
-WANDB_NAME=PROB_MOWODB_V9: 4GPUs, BS 5               Done
-WANDB_NAME=PROB_MOWODB_V10: 8GPUs, BS 5               Done
-
-WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
-WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
+- WANDB_NAME=PROB_MOWODB_V1: 2GPUs, BS 3               Done
+- WANDB_NAME=PROB_MOWODB_V2: 2GPUs, BS 2               Done
+- WANDB_NAME=PROB_MOWODB_V3: 2GPUs, BS 4               Done
+- WANDB_NAME=PROB_MOWODB_V4: 1GPUs, BS 6               Done
+- WANDB_NAME=PROB_MOWODB_V9: 4GPUs, BS 5               Done
+- WANDB_NAME=PROB_MOWODB_V10: 8GPUs, BS 5              Done
+- WANDB_NAME=PROB_OWDETR_V1: 1GPUs, BS 6               Done
+- WANDB_NAME=PROB_OWDETR_V2: 2GPUs, BS 3               Done
 
 ## exp_obj_train_only branch
-WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done exp_obj_train_only: Test #2 - Set --obj_loss_coef to zero
-WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done exp_obj_train_only: Test #1 - Freeze the loss loss_obj_likelihood in models/prob_deformable_detr.py
-WANDB_NAME=PROB_MOWODB_V7: 2GPUs, BS 3               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
-WANDB_NAME=PROB_MOWODB_V8_<>: 2GPUs, BS 3             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V7
-WANDB_NAME=PROB_MOWODB_V11: 8GPUs, BS 5               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
-WANDB_NAME=PROB_MOWODB_V12_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V11
-WANDB_NAME=PROB_MOWODB_V13: 8GPUs, BS 5               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction + --freeze_prob_model
-WANDB_NAME=PROB_MOWODB_V14_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V13
-WANDB_NAME=PROB_MOWODB_V15_<>: 2GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
-WANDB_NAME=PROB_MOWODB_V16_<>: 8GPUs, BS 5             Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
+- WANDB_NAME=PROB_MOWODB_V5: 2GPUs, BS 3               Done exp_obj_train_only: Test #2 - Set --obj_loss_coef to zero
+- WANDB_NAME=PROB_MOWODB_V6: 2GPUs, BS 3               Done exp_obj_train_only: Test #1 - Freeze the loss loss_obj_likelihood in models/prob_deformable_detr.py
+- WANDB_NAME=PROB_MOWODB_V7: 2GPUs, BS 3               Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
+- WANDB_NAME=PROB_MOWODB_V8_<>: 2GPUs, BS 3            Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V7
+- WANDB_NAME=PROB_MOWODB_V11: 8GPUs, BS 5              Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction
+- WANDB_NAME=PROB_MOWODB_V12_<>: 8GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V11
+- WANDB_NAME=PROB_MOWODB_V13: 8GPUs, BS 5              Done exp_obj_train_only: Test #4 - Freeze loss_obj_likelihood + remove objectness from the final class prediction + --freeze_prob_model
+- WANDB_NAME=PROB_MOWODB_V14_<>: 8GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V13
+- WANDB_NAME=PROB_MOWODB_V15_<>: 2GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
+- WANDB_NAME=PROB_MOWODB_V16_<>: 8GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
 
 
 
