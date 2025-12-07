@@ -548,9 +548,9 @@ def convert_class_name_to_superclass(labels, class_mapping, family_mapping, hyp_
     return np.array(transform_labels)
 
 
-def load_obj_features():
-    with h5py.File('/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/objfeatures_V10.h5', 'r') as file:
-        with h5py.File('/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/objfeatures_V10_class_name.h5', 'r') as class_name_file:
+def load_obj_features(objfeatures_filename):
+    with h5py.File(f'/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/{objfeatures_filename}.h5', 'r') as file:
+        with h5py.File(f'/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/{objfeatures_filename}_class_name.h5', 'r') as class_name_file:
             print(len(file.keys()))
             layers_obj_features = {}
             layers_obj_features_class_name = []
@@ -643,29 +643,31 @@ def tsne_visualization(layers_obj_features, layers_obj_features_class_name, rand
 
 
 if __name__ == '__main__':
+    objfeatures_filename = 'objfeatures_V16_1'
     
     # 1.0 TSNE Visualization
-    layers_obj_features, layers_obj_features_class_name = load_obj_features()
-    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}.png')
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}.png')
 
     # 1.1 TSNE Visualization for super-class
     class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
     hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
     super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
-    layers_obj_features, layers_obj_features_class_name = load_obj_features()
-    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_super_class.png', super_class_transform)
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}_super_class.png', super_class_transform)
 
     # 1.2 Hyperbolic visualization
-    layers_obj_features, layers_obj_features_class_name = load_obj_features()
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
     hyperbolic_features = to_hyperbolic(layers_obj_features)
-    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_hyperbolic.png')
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}_hyperbolic.png')
     
     # 1.3 Hyperbolic visualization for super-class
     class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
     hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
     super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
-    layers_obj_features, layers_obj_features_class_name = load_obj_features()
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
     hyperbolic_features = to_hyperbolic(layers_obj_features)
-    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_{x}_hyperbolic_super_class.png', super_class_transform)
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}_hyperbolic_super_class.png', super_class_transform)
+    
     
     pass
