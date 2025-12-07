@@ -1,14 +1,3 @@
-## Servers: KimCuc, PhatDuy, 4_A5000, Cluster, NgocPC, PhatPC
-
-## Given the setup on one server, how can I set it up on new servers?
-git clone <...>
-scp -r <...>:<...>/models/dino_resnet50_pretrain.pth ...
-scp -r <...>:<...>/data/OWOD/Annotations ...
-scp -r <...>:<...>/data/OWOD/JPEGImages ...
-install.sh
-login wandb
-
-
 ## Tmp
 + train: python -u main_open_world.py --output_dir exps/MOWODB/PROB_test/t1 --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 41 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --exemplar_replay_selection --exemplar_replay_max_length 850 --exemplar_replay_dir PROB_MOWODB_V1 --exemplar_replay_cur_file learned_owod_t1_ft.txt --batch_size 1
 + train: python -u main_open_world.py --output_dir exps/MOWODB/PROB_test/t2 --dataset TOWOD --PREV_INTRODUCED_CLS 20 --CUR_INTRODUCED_CLS 20 --train_set owod_t2_train --test_set 'owod_all_task_test' --epochs 51 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --freeze_prob_model --exemplar_replay_selection --exemplar_replay_max_length 1743 --exemplar_replay_dir PROB_MOWODB_test --exemplar_replay_prev_file learned_owod_t1_ft.txt --exemplar_replay_cur_file learned_owod_t2_ft.txt --pretrain exps/MOWODB/PROB_test/t1/checkpoint0040.pth --lr 2e-5 --batch_size 1

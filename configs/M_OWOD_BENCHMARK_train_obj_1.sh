@@ -6,9 +6,9 @@ set -ex
 
 sleep 10    
 
-EXP_DIR=exps/MOWODB/PROB_V16_1
+EXP_DIR=exps/MOWODB/PROB_V17_1
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_MOWODB_V16_1
+WANDB_NAME=PROB_MOWODB_V17_1
 BATCH_SIZE=5
 
 python -u main_open_world.py \
@@ -21,9 +21,9 @@ python -u main_open_world.py \
     
 sleep 10    
 
-EXP_DIR=exps/MOWODB/PROB_V16_1_seed_52
+EXP_DIR=exps/MOWODB/PROB_V17_1_seed_52
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_MOWODB_V16_1_seed_52
+WANDB_NAME=PROB_MOWODB_V17_1_seed_52
 BATCH_SIZE=5
 
 python -u main_open_world.py \
@@ -36,9 +36,9 @@ python -u main_open_world.py \
 
 sleep 10    
 
-EXP_DIR=exps/MOWODB/PROB_V16_1_seed_62
+EXP_DIR=exps/MOWODB/PROB_V17_1_seed_62
 PY_ARGS=${@:1}
-WANDB_NAME=PROB_MOWODB_V16_1_seed_62
+WANDB_NAME=PROB_MOWODB_V17_1_seed_62
 BATCH_SIZE=5
 
 python -u main_open_world.py \
