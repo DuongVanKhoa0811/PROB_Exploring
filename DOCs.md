@@ -35,6 +35,7 @@
 - WANDB_NAME=PROB_MOWODB_V14_<>: 8GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP, freeze DDETR, train PROB modules n epochs, weight from V13
 - WANDB_NAME=PROB_MOWODB_V15_<>: 2GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
 - WANDB_NAME=PROB_MOWODB_V16_<>: 8GPUs, BS 5           Done exp_obj_train_only: Test #5 - Add projector MLP V2, freeze DDETR, train PROB modules n epochs, weight from V11
+- WANDB_NAME=PROB_MOWODB_V17_<>: 8GPUs, BS 5           Done exp_obj_train_only: Test #6 - Add projector MLP V2 - map q_proj to hyperbolic, freeze DDETR, train PROB modules n epochs, weight from V11
 
 
 
