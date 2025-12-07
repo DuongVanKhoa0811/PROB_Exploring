@@ -27,7 +27,7 @@ from .segmentation import sigmoid_focal_loss as seg_sigmoid_focal_loss
 from .deformable_transformer import build_deforamble_transformer
 import copy
 
-import pmath
+from . import pmath
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -338,7 +338,7 @@ class DeformableDETR(nn.Module):
 
         hs_proj_pc = [] #
         for lvl in range(hs.shape[0]):
-            hs_proj_pc.append(self.tpc(self.feature_projector[lvl](hs[lvl]))) #
+            hs_proj_pc.append(self.tpc[lvl](self.feature_projector[lvl](hs[lvl]))) #
             
             if lvl == 0:
                 reference = init_reference
