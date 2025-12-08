@@ -131,7 +131,7 @@ def analyze_combined_evaluation_file(file_path: str, output_csv: str = 'evaluati
 # Example usage:
 if __name__ == "__main__":
     # Single combined log file
-    combined_log_file = '../logs/logs_PROB_MOWODB_EVAL_V16_1.txt'
+    combined_log_file = '../logs/logs_PROB_MOWODB_EVAL_V17_1.txt'
 
     if not Path(combined_log_file).exists():
         print(f"Error: File not found: {combined_log_file}")
@@ -139,5 +139,5 @@ if __name__ == "__main__":
     else:
         summary_df, detailed_df = analyze_combined_evaluation_file(
             combined_log_file,
-            output_csv='evaluation_summary_V16_1.csv'
+            output_csv='evaluation_summary_V17_1.csv'
         )
