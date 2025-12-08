@@ -528,9 +528,8 @@ class PostProcess(nn.Module):
         assert len(out_logits) == len(target_sizes)
         assert target_sizes.shape[1] == 2
 
-        # obj_prob = torch.exp(-self.temperature*pred_obj).unsqueeze(-1)
-        # prob = obj_prob*out_logits.sigmoid()
-        prob = out_logits.sigmoid()
+        obj_prob = torch.exp(-self.temperature*pred_obj).unsqueeze(-1)
+        prob = obj_prob*out_logits.sigmoid()
 
         topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1), self.pred_per_im, dim=1)
         scores = topk_values
