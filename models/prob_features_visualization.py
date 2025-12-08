@@ -643,23 +643,23 @@ def tsne_visualization(layers_obj_features, layers_obj_features_class_name, rand
 
 
 if __name__ == '__main__':
-    objfeatures_filename = 'objfeatures_V16_1'
+    objfeatures_filename = 'objfeatures_V17_1'
     
     # 1.0 TSNE Visualization
     layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
-    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}.png')
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_hyp_{x}.png')
 
     # 1.1 TSNE Visualization for super-class
     class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
     hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
     super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
     layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
-    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}_super_class.png', super_class_transform)
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_hyp_{x}_super_class.png', super_class_transform)
 
     # 1.2 Hyperbolic visualization
     layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
     hyperbolic_features = to_hyperbolic(layers_obj_features)
-    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}_hyperbolic.png')
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_hyp_{x}_hyperbolic.png')
     
     # 1.3 Hyperbolic visualization for super-class
     class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
@@ -667,7 +667,7 @@ if __name__ == '__main__':
     super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
     layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
     hyperbolic_features = to_hyperbolic(layers_obj_features)
-    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_{x}_hyperbolic_super_class.png', super_class_transform)
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_objonly_hyp_{x}_hyperbolic_super_class.png', super_class_transform)
     
     
     pass
