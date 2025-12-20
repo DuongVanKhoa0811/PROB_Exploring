@@ -253,11 +253,25 @@ class featureTracker():
         self.gradients = [0] * len(self.gradients)
 
 
-def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, dataset_name):
+def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, dataset_name, targets=None, iou_threshold=0.5):
+    """
+    Extract object features from predictions.
+    
+    Args:
+        outputs: Model outputs containing pred_logits, pred_boxes, pred_obj
+        tracker: Feature tracker
+        invalid_cls_logits: List of invalid class indices
+        temperature: Temperature for objectness probability
+        pred_per_im: Number of predictions per image
+        dataset_name: Name of the dataset
+        targets: Ground truth targets (optional). If provided, filters predictions by IoU > iou_threshold and matching labels
+        iou_threshold: IoU threshold for filtering (default: 0.5)
+    """
+    import numpy as np
+    from util.box_ops import box_cxcywh_to_xyxy
     
     examples_top_query_features = {'decoder_object_queries': {hook_names[i]: [] for i in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1)}}
         
-
     ################ Object-specific features - object queries in the decoder ################
     if hook_version in ['v0', 'v1']:
         
@@ -277,20 +291,84 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
 
         ### Convert the topk result to final result based on the threshold
         scores = topk_values
+        
+        # Get predicted boxes in xyxy format
+        pred_boxes = outputs['pred_boxes']  # [B, N, 4] in cxcywh format
+        pred_boxes_xyxy = box_cxcywh_to_xyxy(pred_boxes)  # Convert to xyxy
+        
         for batch_idx in range(outputs['pred_logits'].shape[0]):
             scores_example_mask = scores[batch_idx] > threshold
             
+            # Get predictions for this batch
+            batch_pred_boxes = pred_boxes_xyxy[batch_idx]  # [N, 4]
+            batch_topk_query_idx = topk_query_index[batch_idx]  # [pred_per_im]
+            batch_pred_boxes_topk = batch_pred_boxes[batch_topk_query_idx]  # [pred_per_im, 4]
+            batch_labels = labels[batch_idx]  # [pred_per_im]
+            
+            # Filter by IoU and label matching if targets are provided
+            if targets is not None and len(targets) > batch_idx:
+                target = targets[batch_idx]
+                gt_boxes = target['boxes']  # [M, 4] in xyxy format (after transforms)
+                gt_labels = target['labels']  # [M]
+                
+                # Convert gt_boxes to numpy for IoU computation (matching open_world_eval.py format)
+                gt_boxes_np = gt_boxes.cpu().numpy()  # [M, 4]
+                
+                # Create filter mask: IoU > threshold AND label matches
+                valid_mask = torch.zeros(len(batch_pred_boxes_topk), dtype=torch.bool, device=batch_pred_boxes_topk.device)
+                
+                for pred_idx in range(len(batch_pred_boxes_topk)):
+                    if not scores_example_mask[pred_idx]:
+                        continue
+                    
+                    pred_box = batch_pred_boxes_topk[pred_idx].cpu().numpy()  # [4]
+                    pred_label = batch_labels[pred_idx].item()
+                    
+                    # Compute IoU with all ground truth boxes
+                    # Using the IoU function from open_world_eval.py
+                    def iou(BBGT, bb):
+                        ixmin = np.maximum(BBGT[:, 0], bb[0])
+                        iymin = np.maximum(BBGT[:, 1], bb[1])
+                        ixmax = np.minimum(BBGT[:, 2], bb[2])
+                        iymax = np.minimum(BBGT[:, 3], bb[3])
+                        iw = np.maximum(ixmax - ixmin + 1., 0.)
+                        ih = np.maximum(iymax - iymin + 1., 0.)
+                        inters = iw * ih
+                        
+                        uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
+                               (BBGT[:, 2] - BBGT[:, 0] + 1.) *
+                               (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+                        
+                        overlaps = inters / uni
+                        ovmax = np.max(overlaps) if len(overlaps) > 0 else 0.0
+                        jmax = np.argmax(overlaps) if len(overlaps) > 0 else -1
+                        return ovmax, jmax
+                    
+                    ovmax, jmax = iou(gt_boxes_np, pred_box)
+                    
+                    # Check if IoU > threshold and label matches
+                    if ovmax > iou_threshold and jmax >= 0:
+                        gt_label = gt_labels[jmax].item()
+                        if pred_label == gt_label:
+                            valid_mask[pred_idx] = True
+                
+                # Combine with score threshold mask
+                final_mask = scores_example_mask & valid_mask
+            else:
+                # No targets provided, use only score threshold
+                final_mask = scores_example_mask
+            
             assert batch_idx == 0
-            no_objects = bool(scores_example_mask.sum() < 1)
-            class_name = [VOC_COCO_CLASS_NAMES[dataset_name][int(label.item())] for label in labels[batch_idx][scores_example_mask]]
+            no_objects = bool(final_mask.sum() < 1)
+            class_name = [VOC_COCO_CLASS_NAMES[dataset_name][int(label.item())] for label in labels[batch_idx][final_mask]]
             
             example_top_query_features = [] # L x N_objects x C
             for i_layer_topk_query_features in layers_topk_query_features:
-                example_top_query_features.append(i_layer_topk_query_features[batch_idx][scores_example_mask])
-			# Normal task
+                example_top_query_features.append(i_layer_topk_query_features[batch_idx][final_mask])
+            # Normal task
             for i_layer in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1):
                 examples_top_query_features['decoder_object_queries'][hook_names[i_layer]].append(example_top_query_features[i_layer - hook_index['s_tra_dec_hook_idx']].to('cpu'))
-				
+                
     ########################################################################################
     tracker.flush_features()
     
