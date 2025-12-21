@@ -118,6 +118,105 @@ class FullProbObjectnessHead(nn.Module):
         return self.mahalanobis(x)
 
 
+class HyperbolicProbObjectnessHead(nn.Module):
+    """
+    Hyperbolic analogue of PROB's objectness loss L_o (Eq. 5 in PROB), built by replacing 
+    the Euclidean/Mahalanobis term with the Poincaré-ball hyperbolic distance (Eq. 2 in Hyp-OW), 
+    after mapping queries into the Poincaré ball.
+    
+    This class computes the hyperbolic objectness loss:
+    L_o^hyp = Σ_{i∈Z} d_hyp(z_i, z̄)^2
+    
+    where:
+    - z_i are query embeddings projected into the Poincaré ball B_c^D
+    - z̄ is the hyperbolic centroid (hyperbolic average) of all queries
+    - d_hyp is the Poincaré-ball hyperbolic distance
+    """
+    def __init__(self, hidden_dim=256, device='cpu', c=0.1, momentum=0.1):
+        super().__init__()
+        self.flatten = nn.Flatten(0, 1)
+        self.momentum = momentum
+        # Hyperbolic centroid z̄ (analogue of μ in PROB)
+        # Initialize at origin (0) in Poincaré ball
+        self.obj_centroid = nn.Parameter(torch.zeros(hidden_dim, device=device), requires_grad=False)
+        self.device = device
+        self.hidden_dim = hidden_dim
+        self.c = c  # Curvature of Poincaré ball
+            
+    def update_centroid(self, x):
+        """
+        Update the hyperbolic centroid using hyperbolic average (HypAve / Lorentz-factor weighted average).
+        This is applied to all queries (not just matched ones) to maintain a stable centroid.
+        Following Hyp-OW, we use the hyperbolic average (poincare_mean) which is the 
+        Lorentz-factor weighted average.
+        """
+        # x is already in Poincaré ball: [batch_size, num_queries, hidden_dim]
+        out = self.flatten(x).detach()  # [batch_size * num_queries, hidden_dim]
+        
+        # Compute hyperbolic mean (poincare_mean) of all queries
+        # This is the hyperbolic average as mentioned in Hyp-OW Eq. 4
+        # It computes the Lorentz-factor weighted average in Klein model, then projects back to Poincaré ball
+        current_centroid = pmath.poincare_mean(out, dim=0, c=self.c)
+        
+        # Update centroid with momentum (similar to PROB's update)
+        # In hyperbolic space, we use geodesic interpolation via exponential/logarithmic maps
+        if torch.norm(self.obj_centroid.data) < 1e-6:
+            # Initialize with current centroid if starting from origin
+            self.obj_centroid.data = current_centroid
+        else:
+            # Use geodesic interpolation in hyperbolic space for proper momentum update
+            # Interpolate along the geodesic from old centroid to new centroid
+            # logmap gives us the direction vector, then we scale it by momentum
+            direction = pmath.logmap(self.obj_centroid.data, current_centroid, c=self.c)
+            # Move along the geodesic by momentum amount
+            self.obj_centroid.data = pmath.expmap(self.obj_centroid.data, self.momentum * direction, c=self.c)
+            # Project back to Poincaré ball to ensure numerical stability
+            self.obj_centroid.data = pmath.project(self.obj_centroid.data, c=self.c)
+        return
+        
+    def hyperbolic_distance_squared(self, x):
+        """
+        Compute squared hyperbolic distance from each query embedding to the hyperbolic centroid.
+        
+        Args:
+            x: Query embeddings in Poincaré ball [batch_size, num_queries, hidden_dim]
+            
+        Returns:
+            Squared hyperbolic distances [batch_size, num_queries]
+        """
+        out = self.flatten(x)  # [batch_size * num_queries, hidden_dim]
+        
+        # Compute hyperbolic distance: d_hyp(z_i, z̄)
+        # Using pmath.dist which implements: d_hyp(x, y) = (2/√c) * arctanh(√c ||-x ⊕_c y||)
+        # Broadcast centroid to match batch dimension
+        centroid = self.obj_centroid.unsqueeze(0).expand_as(out)  # [batch_size * num_queries, hidden_dim]
+        dists = pmath.dist(out, centroid, c=self.c)  # [batch_size * num_queries]
+        
+        # Square the distances: d_hyp(z_i, z̄)^2
+        dists_squared = dists ** 2
+        
+        # Reshape back to original shape
+        return dists_squared.unflatten(0, x.shape[:2])
+    
+    def set_momentum(self, m):
+        self.momentum = m
+        return
+    
+    def forward(self, x):
+        """
+        Forward pass computes squared hyperbolic distance to centroid.
+        
+        Args:
+            x: Query embeddings already in Poincaré ball [batch_size, num_queries, hidden_dim]
+            
+        Returns:
+            Squared hyperbolic distances [batch_size, num_queries]
+        """
+        if self.training:
+            self.update_centroid(x)
+        return self.hyperbolic_distance_squared(x)
+
+
 class FeatureProjector(nn.Module):
     def __init__(self, dim=256, hidden_dim=512, dropout=0.1):
         super().__init__()
@@ -218,9 +317,12 @@ class DeformableDETR(nn.Module):
         
         self.class_embed = nn.Linear(hidden_dim, num_classes)
         self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
-        self.prob_obj_head = ProbObjectnessHead(hidden_dim)
+        # Use hyperbolic objectness head instead of Euclidean one
+        # The queries are already projected to Poincaré ball in forward pass
+        hyperbolic_c = 0.1  # Match the curvature used in ToPoincare
+        self.prob_obj_head = HyperbolicProbObjectnessHead(hidden_dim, device='cpu', c=hyperbolic_c)
         self.feature_projector = FeatureProjector(dim=hidden_dim, hidden_dim=hidden_dim*2) #
-        self.tpc = ToPoincare(c=0.1,ball_dim=256,riemannian=False,clip_r=1.0) #
+        self.tpc = ToPoincare(c=hyperbolic_c,ball_dim=256,riemannian=False,clip_r=1.0) #
         
 
         self.num_feature_levels = num_feature_levels
