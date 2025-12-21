@@ -113,7 +113,7 @@ def get_args_parser():
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--viz', action='store_true')
     parser.add_argument('--eval_every', default=5, type=int)
-    parser.add_argument('--num_workers', default=3, type=int)
+    parser.add_argument('--num_workers', default=8, type=int)
     parser.add_argument('--cache_mode', default=False, action='store_true', help='whether to cache images on memory')
     
     ################ OW-DETR ################
