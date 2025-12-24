@@ -264,8 +264,8 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
         temperature: Temperature for objectness probability
         pred_per_im: Number of predictions per image
         dataset_name: Name of the dataset
-        targets: Ground truth targets (optional). If provided, filters predictions by IoU > iou_threshold and matching labels
-        iou_threshold: IoU threshold for filtering (default: 0.5)
+        targets: Ground truth targets (optional). If provided, filters predictions by IoU < iou_threshold for background features
+        iou_threshold: IoU threshold for filtering (default: 0.5) - predictions with IoU < threshold are considered background
     """
     import numpy as np
     from util.box_ops import box_cxcywh_to_xyxy
@@ -305,55 +305,52 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
             batch_pred_boxes_topk = batch_pred_boxes[batch_topk_query_idx]  # [pred_per_im, 4]
             batch_labels = labels[batch_idx]  # [pred_per_im]
             
-            # Filter by IoU and label matching if targets are provided
+            # Filter for background features: IoU < threshold with all ground truth boxes
             if targets is not None and len(targets) > batch_idx:
                 target = targets[batch_idx]
                 gt_boxes = target['boxes']  # [M, 4] in xyxy format (after transforms)
-                gt_labels = target['labels']  # [M]
                 
-                # Convert gt_boxes to numpy for IoU computation (matching open_world_eval.py format)
+                # Convert gt_boxes to numpy for IoU computation
                 gt_boxes_np = gt_boxes.cpu().numpy()  # [M, 4]
                 
-                # Create filter mask: IoU > threshold AND label matches
-                valid_mask = torch.zeros(len(batch_pred_boxes_topk), dtype=torch.bool, device=batch_pred_boxes_topk.device)
+                # Create background mask: IoU < threshold with all GT boxes
+                background_mask = torch.ones(len(batch_pred_boxes_topk), dtype=torch.bool, device=batch_pred_boxes_topk.device) ###
                 
+                # Simple IoU computation
+                def compute_iou(bb, BBGT):
+                    """Compute IoU between a single box and multiple boxes"""
+                    if len(BBGT) == 0:
+                        return 0.0
+                    ixmin = np.maximum(BBGT[:, 0], bb[0])
+                    iymin = np.maximum(BBGT[:, 1], bb[1])
+                    ixmax = np.minimum(BBGT[:, 2], bb[2])
+                    iymax = np.minimum(BBGT[:, 3], bb[3])
+                    iw = np.maximum(ixmax - ixmin + 1., 0.)
+                    ih = np.maximum(iymax - iymin + 1., 0.)
+                    inters = iw * ih
+                    
+                    uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
+                           (BBGT[:, 2] - BBGT[:, 0] + 1.) *
+                           (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+                    
+                    overlaps = inters / uni
+                    return np.max(overlaps) if len(overlaps) > 0 else 0.0
+                
+                # Check each prediction: if max IoU < threshold, it's background
                 for pred_idx in range(len(batch_pred_boxes_topk)):
                     if not scores_example_mask[pred_idx]:
+                        background_mask[pred_idx] = False
                         continue
                     
                     pred_box = batch_pred_boxes_topk[pred_idx].cpu().numpy()  # [4]
-                    pred_label = batch_labels[pred_idx].item()
+                    max_iou = compute_iou(pred_box, gt_boxes_np)
                     
-                    # Compute IoU with all ground truth boxes
-                    # Using the IoU function from open_world_eval.py
-                    def iou(BBGT, bb):
-                        ixmin = np.maximum(BBGT[:, 0], bb[0])
-                        iymin = np.maximum(BBGT[:, 1], bb[1])
-                        ixmax = np.minimum(BBGT[:, 2], bb[2])
-                        iymax = np.minimum(BBGT[:, 3], bb[3])
-                        iw = np.maximum(ixmax - ixmin + 1., 0.)
-                        ih = np.maximum(iymax - iymin + 1., 0.)
-                        inters = iw * ih
-                        
-                        uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
-                               (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-                               (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
-                        
-                        overlaps = inters / uni
-                        ovmax = np.max(overlaps) if len(overlaps) > 0 else 0.0
-                        jmax = np.argmax(overlaps) if len(overlaps) > 0 else -1
-                        return ovmax, jmax
-                    
-                    ovmax, jmax = iou(gt_boxes_np, pred_box)
-                    
-                    # Check if IoU > threshold and label matches
-                    if ovmax > iou_threshold and jmax >= 0:
-                        gt_label = gt_labels[jmax].item()
-                        if pred_label == gt_label:
-                            valid_mask[pred_idx] = True
+                    # Background: IoU < threshold
+                    if max_iou >= iou_threshold:
+                        background_mask[pred_idx] = False
                 
                 # Combine with score threshold mask
-                final_mask = scores_example_mask & valid_mask
+                final_mask = scores_example_mask & background_mask
             else:
                 # No targets provided, use only score threshold
                 final_mask = scores_example_mask
