@@ -8,7 +8,7 @@ from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
 
 
 threshold = 0.5
-hook_version = 'v0' # [v0, v1]
+hook_version = 'v0_obj_hyp' # [v0, v1, v0_obj_hyp]
 
 
 def combined_cnn_layer(hook_names, hook_index):
@@ -45,6 +45,15 @@ hook_index_v0 = {
     'e_tra_dec_hook_idx' : hook_names_v0.index('transformer.decoder.layers.5.norm3_out'),
 }
 
+### v0_obj_hyp Penultimate layer of the MLP projection
+hook_names_v0_obj_hyp = []
+hook_names_v0_obj_hyp.extend(collect_in_out_hook_names(['transformer.decoder.layers.5.norm3']))
+hook_names_v0_obj_hyp.extend(collect_in_out_hook_names(['feature_projector.0.norm']))
+hook_names_v0_obj_hyp.extend(collect_in_out_hook_names(['tpc.0']))
+hook_index_v0_obj_hyp = {
+    's_tra_dec_hook_idx' : hook_names_v0_obj_hyp.index('transformer.decoder.layers.5.norm3_in'),
+    'e_tra_dec_hook_idx' : hook_names_v0_obj_hyp.index('tpc.0_out'),
+}
 
 ### v1 Encoder + Decoder + SAFE
 hook_names_v1 = []
@@ -111,6 +120,9 @@ hook_index_v1 = {
 if hook_version == 'v0':
     hook_names = hook_names_v0
     hook_index = hook_index_v0
+elif hook_version == 'v0_obj_hyp':
+    hook_names = hook_names_v0_obj_hyp
+    hook_index = hook_index_v0_obj_hyp
 elif hook_version == 'v1':
     hook_names = hook_names_v1
     hook_index = hook_index_v1
@@ -273,7 +285,7 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
     examples_top_query_features = {'decoder_object_queries': {hook_names[i]: [] for i in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1)}}
         
     ################ Object-specific features - object queries in the decoder ################
-    if hook_version in ['v0', 'v1']:
+    if hook_version in ['v0', 'v1', 'v0_obj_hyp']:
         
         ### Collect topk result
         out_logits, pred_obj = outputs['pred_logits'], outputs['pred_obj']
