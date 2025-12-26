@@ -26,6 +26,10 @@ from util.plot_utils import plot_prediction
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
+from models.prob_extract_obj_features import extract_obj, featureTracker, save_obj_features
+import h5py
+import copy
+
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -104,7 +108,12 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     header = 'Test:'
     iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessors.keys())
     coco_evaluator = OWEvaluator(base_ds, iou_types, args=args)
- 
+    
+    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V18_IoU06.h5', 'w')
+    class_name_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V18_IoU06_class_name.h5', 'w')
+    tracker = featureTracker(model, variant='DDETR')
+    save_idx = 0
+    
     panoptic_evaluator = None
     if 'panoptic' in postprocessors.keys():
         panoptic_evaluator = PanopticEvaluator(
@@ -114,12 +123,40 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         )
  
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
+ 
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         outputs = model(samples)
+        
+        invalid_cls_logits = list(range(args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS, args.num_classes-1))
+        
+        # Convert targets boxes to xyxy format for IoU computation
+        # Note: targets boxes are already in xyxy format after transforms, but we need to ensure they're on the right device
+        targets_for_iou = copy.deepcopy(targets)  # Already in correct format
+        
+        obj_features, no_objects, class_name = extract_obj(
+            outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, 
+            pred_per_im=100, dataset_name=args.dataset, 
+            targets=targets_for_iou, iou_threshold=0.6
+        )
+        if not no_objects: 
+            save_obj_features(obj_features, id_file, index=save_idx)   
+            class_name_file.create_dataset(f'{save_idx}', data=class_name) 
+            save_idx += 1
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
         results = postprocessors['bbox'](outputs, orig_target_sizes)
+        
+        # ### My additional code to draw the predict boxes
+        # draw_bb = True
+        # dataset_name = args.dataset
+        # from util.miscellaneous import draw_pred_boxes
+        # if draw_bb:
+        #     if dataset_name == 'TOWOD':
+        #         draw_pred_boxes(results, targets, dataset_name, test_set=args.test_set, 
+        #                         data_root=args.data_root, 
+        #                         n_introduce_classes=args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS,
+        #                         draw_bb_verbose=False)
  
         if 'segm' in postprocessors.keys():
             target_sizes = torch.stack([t["size"] for t in targets], dim=0)
@@ -137,6 +174,9 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
                 res_pano[i]["file_name"] = file_name
  
             panoptic_evaluator.update(res_pano)
+ 
+    id_file.close()
+    class_name_file.close()
  
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
