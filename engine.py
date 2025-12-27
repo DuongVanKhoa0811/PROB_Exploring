@@ -109,8 +109,8 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessors.keys())
     coco_evaluator = OWEvaluator(base_ds, iou_types, args=args)
     
-    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V18_less_IoU01.h5', 'w')
-    class_name_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V18_less_IoU01_class_name.h5', 'w')
+    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V18_less_IoU01_tmp.h5', 'w')
+    class_name_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V18_less_IoU01_class_name_tmp.h5', 'w')
     tracker = featureTracker(model, variant='DDETR')
     save_idx = 0
     

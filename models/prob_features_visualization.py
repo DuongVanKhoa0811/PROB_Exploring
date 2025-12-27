@@ -588,7 +588,7 @@ def load_obj_features(objfeatures_filename, background_features_filename=None):
             # Post processing            
             for subkey in layers_obj_features.keys():
                 layers_obj_features[subkey] = np.concatenate(layers_obj_features[subkey], axis=0)
-                print('layers_obj_features[subkey]', layers_obj_features[subkey].shape)
+                print(f'layers_obj_features[{subkey}]', layers_obj_features[subkey].shape)
             layers_obj_features_class_name = np.array(layers_obj_features_class_name)
             print('layers_obj_features_class_name', layers_obj_features_class_name.shape)
 
