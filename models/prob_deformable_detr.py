@@ -27,7 +27,6 @@ from .segmentation import sigmoid_focal_loss as seg_sigmoid_focal_loss
 from .deformable_transformer import build_deforamble_transformer
 import copy
 
-from . import pmath
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -139,63 +138,6 @@ class FeatureProjector(nn.Module):
         return x
     
 
-# Hyp-OW paper
-class ToPoincare(nn.Module):
-    r"""
-    Module which maps points in n-dim Euclidean space
-    to n-dim Poincare ball
-    Also implements clipping from https://arxiv.org/pdf/2107.11472.pdf
-    """
-
-    def __init__(self, c, train_c=False, train_x=False, ball_dim=None, riemannian=True, clip_r=None):
-        super(ToPoincare, self).__init__()
-        if train_x:
-            if ball_dim is None:
-                raise ValueError(
-                    "if train_x=True, ball_dim has to be integer, got {}".format(
-                        ball_dim
-                    )
-                )
-            self.xp = nn.Parameter(torch.zeros((ball_dim,)))
-        else:
-            self.register_parameter("xp", None)
-
-        if train_c:
-            self.c = nn.Parameter(torch.Tensor([c,]))
-        else:
-            self.c = c
-
-        self.train_x = train_x
-
-        self.riemannian = pmath.RiemannianGradient
-        self.riemannian.c = c
-        
-        self.clip_r = clip_r
-        
-        if riemannian:
-            self.grad_fix = lambda x: self.riemannian.apply(x)
-        else:
-            self.grad_fix = lambda x: x
-
-    def forward(self, x):
-        if self.clip_r is not None:
-            #ForkedPdb().set_trace()
-            x_norm = torch.norm(x, dim=-1, keepdim=True) + 1e-5
-            fac =  torch.minimum(
-                torch.ones_like(x_norm), 
-                self.clip_r / x_norm
-            )
-            x = x * fac
-            
-        if self.train_x:
-            xp = pmath.project(pmath.expmap0(self.xp, c=self.c), c=self.c)
-            return self.grad_fix(pmath.project(pmath.expmap(xp, x, c=self.c), c=self.c))
-        return self.grad_fix(pmath.project(pmath.expmap0(x, c=self.c), c=self.c))
-
-    def extra_repr(self):
-        return "c={}, train_x={}".format(self.c, self.train_x)
-
-
 class DeformableDETR(nn.Module):
     """ This is the Deformable DETR module that performs object detection """
     def __init__(self, backbone, transformer, num_classes, num_queries, num_feature_levels,
@@ -220,8 +162,6 @@ class DeformableDETR(nn.Module):
         self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
         self.prob_obj_head = ProbObjectnessHead(hidden_dim)
         self.feature_projector = FeatureProjector(dim=hidden_dim, hidden_dim=hidden_dim*2) #
-        self.tpc = ToPoincare(c=0.1,ball_dim=256,riemannian=False,clip_r=1.0) #
-        
 
         self.num_feature_levels = num_feature_levels
         if not two_stage:
@@ -269,7 +209,6 @@ class DeformableDETR(nn.Module):
             self.bbox_embed = _get_clones(self.bbox_embed, num_pred)
             self.prob_obj_head =  _get_clones(self.prob_obj_head, num_pred)
             self.feature_projector =  _get_clones(self.feature_projector, num_pred) #
-            self.tpc =  _get_clones(self.tpc, num_pred) #
             nn.init.constant_(self.bbox_embed[0].layers[-1].bias.data[2:], -2.0)
             # hack implementation for iterative bounding box refinement
             self.transformer.decoder.bbox_embed = self.bbox_embed
@@ -279,7 +218,6 @@ class DeformableDETR(nn.Module):
             self.bbox_embed = nn.ModuleList([self.bbox_embed for _ in range(num_pred)])
             self.prob_obj_head = nn.ModuleList([self.prob_obj_head for _ in range(num_pred)])
             self.feature_projector = nn.ModuleList([self.feature_projector for _ in range(num_pred)]) #
-            self.tpc = nn.ModuleList([self.tpc for _ in range(num_pred)]) #
             self.transformer.decoder.bbox_embed = None
         if two_stage:
             # hack implementation for two-stage
@@ -336,9 +274,9 @@ class DeformableDETR(nn.Module):
         outputs_coords = []
         outputs_objectnesses = []
 
-        hs_proj_pc = [] #
+        hs_proj = [] #
         for lvl in range(hs.shape[0]):
-            hs_proj_pc.append(self.tpc[lvl](self.feature_projector[lvl](hs[lvl]))) #
+            hs_proj.append(self.feature_projector[lvl](hs[lvl])) #
             
             if lvl == 0:
                 reference = init_reference
@@ -346,7 +284,7 @@ class DeformableDETR(nn.Module):
                 reference = inter_references[lvl - 1]
             reference = inverse_sigmoid(reference)
             outputs_class = self.class_embed[lvl](hs[lvl])
-            outputs_objectness = self.prob_obj_head[lvl](hs_proj_pc[lvl])
+            outputs_objectness = self.prob_obj_head[lvl](hs_proj[lvl])
 
             tmp = self.bbox_embed[lvl](hs[lvl])
             if reference.shape[-1] == 4:
