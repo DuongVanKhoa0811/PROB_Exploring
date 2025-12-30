@@ -555,6 +555,7 @@ class PostProcess(nn.Module):
         """        
         out_logits, pred_obj, out_bbox = outputs['pred_logits'], outputs['pred_obj'], outputs['pred_boxes']
         out_logits[:,:, self.invalid_cls_logits] = -10e10
+        out_logits[:,:, :20] = -10e10
 
         assert len(out_logits) == len(target_sizes)
         assert target_sizes.shape[1] == 2
