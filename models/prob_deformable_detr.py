@@ -555,13 +555,13 @@ class PostProcess(nn.Module):
         """        
         out_logits, pred_obj, out_bbox = outputs['pred_logits'], outputs['pred_obj'], outputs['pred_boxes']
         out_logits[:,:, self.invalid_cls_logits] = -10e10
-        out_logits[:,:, :20] = -10e10
 
         assert len(out_logits) == len(target_sizes)
         assert target_sizes.shape[1] == 2
 
         obj_prob = torch.exp(-self.temperature*pred_obj).unsqueeze(-1)
-        prob = obj_prob*out_logits.sigmoid()
+        new_tensor = torch.rand_like(obj_prob)
+        prob = new_tensor*out_logits.sigmoid()
 
         topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1), self.pred_per_im, dim=1)
         scores = topk_values
