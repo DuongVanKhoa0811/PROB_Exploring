@@ -535,7 +535,8 @@ class SetCriterion(nn.Module):
 
         return losses
 
-
+global list_obj_prob
+list_obj_prob = []
 class PostProcess(nn.Module):
     """ This module converts the model's output into the format expected by the coco api"""
     def __init__(self, invalid_cls_logits, temperature=1, pred_per_im=100):
@@ -545,7 +546,7 @@ class PostProcess(nn.Module):
         self.pred_per_im=pred_per_im
 
     @torch.no_grad()
-    def forward(self, outputs, target_sizes):
+    def forward(self, outputs, target_sizes, save_list_obj_prob=False):
         """ Perform the computation
         Parameters:
             outputs: raw outputs of the model
@@ -560,8 +561,12 @@ class PostProcess(nn.Module):
         assert target_sizes.shape[1] == 2
 
         obj_prob = torch.exp(-self.temperature*pred_obj).unsqueeze(-1)
-        new_tensor = torch.rand_like(obj_prob)
-        prob = new_tensor*out_logits.sigmoid()
+        prob = obj_prob*out_logits.sigmoid()
+        global list_obj_prob
+        list_obj_prob.append(obj_prob)
+        if save_list_obj_prob: 
+            list_obj_prob = torch.cat(list_obj_prob, dim=0)
+            torch.save(list_obj_prob, '/home/khoadv/projects/OOD_OD/PROB_Exploring/trash/list_obj_prob_PROB_OBJ.pth')
 
         topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1), self.pred_per_im, dim=1)
         scores = topk_values
