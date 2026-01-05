@@ -7,7 +7,7 @@ from itertools import combinations
 from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
 
 
-threshold = 0.5
+threshold = -1
 hook_version = 'v0' # [v0, v1]
 
 
@@ -264,8 +264,8 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
         temperature: Temperature for objectness probability
         pred_per_im: Number of predictions per image
         dataset_name: Name of the dataset
-        targets: Ground truth targets (optional). If provided, filters predictions by IoU < iou_threshold for background features
-        iou_threshold: IoU threshold for filtering (default: 0.5) - predictions with IoU < threshold are considered background
+        targets: Ground truth targets (optional).
+        iou_threshold: IoU threshold for filtering (default: 0.5)
     """
     import numpy as np
     from util.box_ops import box_cxcywh_to_xyxy
@@ -291,6 +291,9 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
 
         ### Convert the topk result to final result based on the threshold
         scores = topk_values
+        obj_prob_sorted = torch.gather(obj_prob.squeeze(-1), 1, topk_query_index)
+        obj_prob_sorted_filtered = []
+        background_prob_sorted_filtered = []
         
         # Get predicted boxes in xyxy format
         pred_boxes = outputs['pred_boxes']  # [B, N, 4] in cxcywh format
@@ -356,8 +359,9 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
                 final_mask = scores_example_mask
             
             assert batch_idx == 0
-            no_objects = bool(final_mask.sum() < 1)
-            class_name = [VOC_COCO_CLASS_NAMES[dataset_name][int(label.item())] for label in labels[batch_idx][final_mask]]
+            class_name = ['object' for label in labels[batch_idx][~final_mask]] + ['background' for label in labels[batch_idx][final_mask]]
+            obj_prob_sorted_filtered.append(obj_prob_sorted[batch_idx][~final_mask].to('cpu'))
+            background_prob_sorted_filtered.append(obj_prob_sorted[batch_idx][final_mask].to('cpu'))
             
             example_top_query_features = [] # L x N_objects x C
             for i_layer_topk_query_features in layers_topk_query_features:
@@ -369,7 +373,7 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
     ########################################################################################
     tracker.flush_features()
     
-    return examples_top_query_features, no_objects, class_name
+    return examples_top_query_features, class_name, obj_prob_sorted_filtered, background_prob_sorted_filtered
 
 
 def save_obj_features(features, dset_file, index):
@@ -384,3 +388,10 @@ def save_obj_features(features, dset_file, index):
             for subkey, subvalue in value.items():
                 assert len(subvalue) == 1, "Expected a single sample"
                 subgroup.create_dataset(f'{subkey}', data=np.array(subvalue[0]))
+
+
+def save_obj_scores(obj_prob_sorted_filtered, background_prob_sorted_filtered, dset_file, index):
+    group = dset_file.create_group(f'{index}')
+    group.create_dataset(f'obj_scores', data=np.concatenate([np.array(obj_prob_sorted_filtered[0]), np.array(background_prob_sorted_filtered[0])]))
+    
+    
