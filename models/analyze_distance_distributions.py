@@ -218,7 +218,7 @@ def plot_distance_distributions(layer_distances, layer_objectness, euclidean_lay
 if __name__ == '__main__':
     # Configuration
     objfeatures_filename = 'objfeatures_V18_IoU06'
-    background_features_filename = 'objfeatures_V18_less_IoU01'
+    # background_features_filename = 'objfeatures_V18_less_IoU01'
     n_pairs = 5000  # Number of object pairs to sample
     c = 0.1  # Curvature parameter for hyperbolic space
     hyperbolic_layer = 'tpc.0_out'
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     print("Loading object features...")
     layers_obj_features, layers_obj_features_class_name = load_obj_features(
         objfeatures_filename, 
-        background_features_filename
+        # background_features_filename
     )
     
     print(f"\nLoaded features for {len(layers_obj_features)} layers")
