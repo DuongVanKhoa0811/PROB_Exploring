@@ -733,11 +733,6 @@ class PostProcess(nn.Module):
         labels = topk_indexes % out_logits.shape[2]
         boxes = box_ops.box_cxcywh_to_xyxy(out_bbox)
         boxes = torch.gather(boxes, 1, topk_boxes.unsqueeze(-1).repeat(1,1,4))
-        tmp_box_idx = topk_boxes[labels == 80]
-        print(f'*** box idx with labels == 80 (len={len(tmp_box_idx)})', tmp_box_idx.tolist())
-        print('### box idx with labels == 80 - sort', torch.sort(tmp_box_idx).values.tolist())
-        if len(tmp_box_idx) == 87:
-            import ipdb; ipdb.set_trace()
         
         img_h, img_w = target_sizes.unbind(1)
         scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
