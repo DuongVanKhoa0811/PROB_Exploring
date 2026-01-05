@@ -89,7 +89,7 @@ def analyze_distance_distributions(layers_obj_features, hyperbolic_layer, euclid
             distances: List of distances
         """
         
-        return [np.exp(-temperature * distance) for distance in distances]
+        return [np.exp(-temperature * distance ** 2) for distance in distances]
 
     # Identify hyperbolic layer
     print(f"Found 1 Euclidean layer and 1 hyperbolic layer")
@@ -138,7 +138,7 @@ def analyze_distance_distributions(layers_obj_features, hyperbolic_layer, euclid
     print(f"{hyperbolic_layer} (Hyperbolic): mean={np.mean(distances):.4f}, std={np.std(distances):.4f}")
     
     # Calculate objectness scores for hyperbolic layer
-    for i in range(1,30,1): # eeeee
+    for i in range(1,151,10):
         temperature= i * obj_temp/hidden_dim
         objectness_scores = PROB_obj_score_calculation(distances, temperature)
         layer_objectness[hyperbolic_layer] = objectness_scores
@@ -165,34 +165,34 @@ def plot_distance_distributions(layer_distances, layer_objectness, euclidean_lay
     title_fontsize = 18
     tick_fontsize = 15
 
-    # # Create a comparison plot: Euclidean vs Hyperbolic (distances)
-    # fig, ax = plt.subplots(figsize=(14, 8))
-    # distances_euc = layer_distances[euclidean_layer]
-    # distances_hyp = layer_distances[hyperbolic_layer]
+    # Create a comparison plot: Euclidean vs Hyperbolic (distances)
+    fig, ax = plt.subplots(figsize=(14, 8))
+    distances_euc = layer_distances[euclidean_layer]
+    distances_hyp = layer_distances[hyperbolic_layer]
     
-    # # Calculate mean and std
-    # mean_euc = np.mean(distances_euc)
-    # std_euc = np.std(distances_euc)
-    # mean_hyp = np.mean(distances_hyp)
-    # std_hyp = np.std(distances_hyp)
+    # Calculate mean and std
+    mean_euc = np.mean(distances_euc)
+    std_euc = np.std(distances_euc)
+    mean_hyp = np.mean(distances_hyp)
+    std_hyp = np.std(distances_hyp)
     
-    # ax.hist(distances_euc, bins=50, alpha=0.5, 
-    #         label=f'{euclidean_layer} (Euclidean)\nMean: {mean_euc:.4f}, Std: {std_euc:.4f}', 
-    #         edgecolor='black', color='lightblue')
-    # ax.hist(distances_hyp, bins=50, alpha=0.7, 
-    #         label=f'{hyperbolic_layer} (Hyperbolic)\nMean: {mean_hyp:.4f}, Std: {std_hyp:.4f}', 
-    #         edgecolor='black', color='orange')
-    # ax.set_xlabel('Distance', fontsize=label_fontsize)
-    # ax.set_ylabel('Frequency', fontsize=label_fontsize)
-    # ax.set_title(f'Distance Distribution Comparison: Euclidean vs Hyperbolic\n({n_pairs} object pairs)', 
-    #              fontsize=title_fontsize, fontweight='bold')
-    # ax.legend(fontsize=label_fontsize)
-    # ax.tick_params(axis='both', labelsize=tick_fontsize)
-    # ax.grid(True, alpha=0.3)
-    # plt.tight_layout()
-    # plt.savefig('../trash/distance_comparison_euclidean_vs_hyperbolic.png', dpi=150, bbox_inches='tight')
-    # print("Saved comparison plot to '../trash/distance_comparison_euclidean_vs_hyperbolic.png'")
-    # plt.close()
+    ax.hist(distances_euc, bins=50, alpha=0.5, 
+            label=f'{euclidean_layer} (Euclidean)\nMean: {mean_euc:.4f}, Std: {std_euc:.4f}', 
+            edgecolor='black', color='lightblue')
+    ax.hist(distances_hyp, bins=50, alpha=0.7, 
+            label=f'{hyperbolic_layer} (Hyperbolic)\nMean: {mean_hyp:.4f}, Std: {std_hyp:.4f}', 
+            edgecolor='black', color='orange')
+    ax.set_xlabel('Distance', fontsize=label_fontsize)
+    ax.set_ylabel('Frequency', fontsize=label_fontsize)
+    ax.set_title(f'Distance Distribution Comparison: Euclidean vs Hyperbolic\n({n_pairs} object pairs)', 
+                 fontsize=title_fontsize, fontweight='bold')
+    ax.legend(fontsize=label_fontsize)
+    ax.tick_params(axis='both', labelsize=tick_fontsize)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('../trash/distance_comparison_euclidean_vs_hyperbolic.png', dpi=150, bbox_inches='tight')
+    print("Saved comparison plot to '../trash/distance_comparison_euclidean_vs_hyperbolic.png'")
+    plt.close()
     
     # Create a comparison plot: Euclidean vs Hyperbolic (objectness scores)
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -210,8 +210,8 @@ def plot_distance_distributions(layer_distances, layer_objectness, euclidean_lay
     ax.tick_params(axis='both', labelsize=tick_fontsize)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(f'../trash/objectness_comparison_euclidean_vs_hyperbolic{suffix_name}.png', dpi=150, bbox_inches='tight') # eeeee
-    print(f"Saved objectness comparison plot to '../trash/objectness_comparison_euclidean_vs_hyperbolic{suffix_name}.png'") # eeeee
+    plt.savefig(f'../trash/objectness_comparison_euclidean_vs_hyperbolic{suffix_name}.png', dpi=150, bbox_inches='tight')
+    print(f"Saved objectness comparison plot to '../trash/objectness_comparison_euclidean_vs_hyperbolic{suffix_name}.png'")
     plt.close()
 
 
