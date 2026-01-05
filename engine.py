@@ -122,7 +122,12 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             output_dir=os.path.join(output_dir, "panoptic_eval"),
         )
  
+    sample_count = 0
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
+        if 80 not in targets[0]['labels'].tolist(): continue
+        print('targets[0][labels]', targets[0]['labels'].tolist())
+        sample_count += 1
+        if sample_count > 100: return 0,0
  
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
