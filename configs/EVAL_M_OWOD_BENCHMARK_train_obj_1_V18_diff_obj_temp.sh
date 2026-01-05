@@ -20,7 +20,7 @@ sleep 10
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
     --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
-    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 41*1.3}")\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 10*1.3}")\
     --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
     ${PY_ARGS}
     
@@ -30,7 +30,7 @@ sleep 10
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
     --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
-    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 81*1.3}")\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 20*1.3}")\
     --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
     ${PY_ARGS}
 
@@ -40,7 +40,7 @@ sleep 10
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
     --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
-    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 121*1.3}")\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 30*1.3}")\
     --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
     ${PY_ARGS}
 
@@ -50,6 +50,77 @@ sleep 10
 python -u main_open_world.py \
     --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
     --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
-    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 161*1.3}")\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 40*1.3}")\
     --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
     ${PY_ARGS}
+
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 50*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 60*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+    
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 70*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 90*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 90*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 100*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+
+EXP_DIR=exps/MOWODB/PROB_V18_1
+PY_ARGS=${@:1}
+sleep 10    
+python -u main_open_world.py \
+    --output_dir "${EXP_DIR}/eval" --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 \
+    --train_set "owod_t1_train" --test_set 'owod_all_task_test' --epochs 191 --lr_drop 35\
+    --model_type 'prob' --obj_loss_coef 8e-4 --obj_temp $(awk "BEGIN {print 110*1.3}")\
+    --pretrain "${EXP_DIR}/t1.pth" --eval --wandb_project ""\
+    ${PY_ARGS}
+    
