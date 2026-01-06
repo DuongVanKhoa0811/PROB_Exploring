@@ -270,8 +270,6 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
     import numpy as np
     from util.box_ops import box_cxcywh_to_xyxy
     
-    examples_top_query_features = {'decoder_object_queries': {hook_names[i]: [] for i in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1)}}
-        
     ################ Object-specific features - object queries in the decoder ################
     if hook_version in ['v0', 'v1']:
         
@@ -279,51 +277,32 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
         out_logits, pred_obj = outputs['pred_logits'], outputs['pred_obj']
         out_logits[:,:, invalid_cls_logits] = -10e10
         obj_prob = torch.exp(-temperature*pred_obj).unsqueeze(-1)
-        prob = obj_prob*out_logits.sigmoid()
-        topk_values, topk_indexes = torch.topk(prob.view(out_logits.shape[0], -1), pred_per_im, dim=1)
-        topk_query_index = topk_indexes // out_logits.shape[2]
-        labels = topk_indexes % out_logits.shape[2]
-        layers_topk_query_features = [] # LxBx100xC
-        
-        # Normal task
-        for idx in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1,1):
-            layers_topk_query_features.append(torch.gather(tracker.features[idx], 1, topk_query_index.unsqueeze(-1).repeat(1, 1, tracker.features[idx].shape[-1])))
-
-        ### Convert the topk result to final result based on the threshold
-        scores = topk_values
-        obj_prob_sorted = torch.gather(obj_prob.squeeze(-1), 1, topk_query_index)
-        obj_prob_sorted_filtered = []
-        background_prob_sorted_filtered = []
         
         # Get predicted boxes in xyxy format
         pred_boxes = outputs['pred_boxes']  # [B, N, 4] in cxcywh format
         pred_boxes_xyxy = box_cxcywh_to_xyxy(pred_boxes)  # Convert to xyxy
         
         for batch_idx in range(outputs['pred_logits'].shape[0]):
-            scores_example_mask = scores[batch_idx] > threshold
-            
             # Get predictions for this batch
             batch_pred_boxes = pred_boxes_xyxy[batch_idx]  # [N, 4]
-            batch_topk_query_idx = topk_query_index[batch_idx]  # [pred_per_im]
-            batch_pred_boxes_topk = batch_pred_boxes[batch_topk_query_idx]  # [pred_per_im, 4]
-            batch_labels = labels[batch_idx]  # [pred_per_im]
             
             # Filter for background features: IoU < threshold with all ground truth boxes
             if targets is not None and len(targets) > batch_idx:
                 target = targets[batch_idx]
                 gt_boxes = target['boxes']  # [M, 4] in xyxy format (after transforms)
+                gt_labels = target['labels']  # [M]
                 
                 # Convert gt_boxes to numpy for IoU computation
                 gt_boxes_np = gt_boxes.cpu().numpy()  # [M, 4]
                 
-                # Create background mask: IoU < threshold with all GT boxes
-                background_mask = torch.ones(len(batch_pred_boxes_topk), dtype=torch.bool, device=batch_pred_boxes_topk.device) ###
+                class_name = []
+                obj_prob_filtered = []
                 
                 # Simple IoU computation
                 def compute_iou(bb, BBGT):
                     """Compute IoU between a single box and multiple boxes"""
                     if len(BBGT) == 0:
-                        return 0.0
+                        return 0.0, -1
                     ixmin = np.maximum(BBGT[:, 0], bb[0])
                     iymin = np.maximum(BBGT[:, 1], bb[1])
                     ixmax = np.minimum(BBGT[:, 2], bb[2])
@@ -337,43 +316,32 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
                            (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
                     
                     overlaps = inters / uni
-                    return np.max(overlaps) if len(overlaps) > 0 else 0.0
+                    
+                    ovmax = np.max(overlaps) if len(overlaps) > 0 else 0.0
+                    jmax = np.argmax(overlaps) if len(overlaps) > 0 else -1
+                    return ovmax, jmax
                 
                 # Check each prediction: if max IoU < threshold, it's background
-                for pred_idx in range(len(batch_pred_boxes_topk)):
-                    if not scores_example_mask[pred_idx]:
-                        background_mask[pred_idx] = False
-                        continue
+                for pred_idx in range(len(batch_pred_boxes)):
+                    pred_box = batch_pred_boxes[pred_idx].cpu().numpy()  # [4]
+                    max_iou, jmax = compute_iou(pred_box, gt_boxes_np)
                     
-                    pred_box = batch_pred_boxes_topk[pred_idx].cpu().numpy()  # [4]
-                    max_iou = compute_iou(pred_box, gt_boxes_np)
-                    
-                    # Background: IoU < threshold
-                    if max_iou >= iou_threshold:
-                        background_mask[pred_idx] = False
+                    if max_iou >= iou_threshold and jmax >= 0:
+                        class_name.append(VOC_COCO_CLASS_NAMES[dataset_name][int(gt_labels[jmax].item())])
+                        obj_prob_filtered.append(obj_prob[batch_idx][pred_idx].to('cpu').item())
+                    else:
+                        class_name.append('background')
+                        obj_prob_filtered.append(obj_prob[batch_idx][pred_idx].to('cpu').item())
                 
-                # Combine with score threshold mask
-                final_mask = scores_example_mask & background_mask
             else:
-                # No targets provided, use only score threshold
-                final_mask = scores_example_mask
+                assert False
             
             assert batch_idx == 0
-            class_name = ['object' for label in labels[batch_idx][~final_mask]] + ['background' for label in labels[batch_idx][final_mask]]
-            obj_prob_sorted_filtered.append(obj_prob_sorted[batch_idx][~final_mask].to('cpu'))
-            background_prob_sorted_filtered.append(obj_prob_sorted[batch_idx][final_mask].to('cpu'))
             
-            example_top_query_features = [] # L x N_objects x C
-            for i_layer_topk_query_features in layers_topk_query_features:
-                example_top_query_features.append(i_layer_topk_query_features[batch_idx][final_mask])
-            # Normal task
-            for i_layer in range(hook_index['s_tra_dec_hook_idx'], hook_index['e_tra_dec_hook_idx'] + 1):
-                examples_top_query_features['decoder_object_queries'][hook_names[i_layer]].append(example_top_query_features[i_layer - hook_index['s_tra_dec_hook_idx']].to('cpu'))
-                
     ########################################################################################
     tracker.flush_features()
     
-    return examples_top_query_features, class_name, obj_prob_sorted_filtered, background_prob_sorted_filtered
+    return class_name, obj_prob_filtered
 
 
 def save_obj_features(features, dset_file, index):
@@ -390,8 +358,52 @@ def save_obj_features(features, dset_file, index):
                 subgroup.create_dataset(f'{subkey}', data=np.array(subvalue[0]))
 
 
-def save_obj_scores(obj_prob_sorted_filtered, background_prob_sorted_filtered, dset_file, index):
+def save_obj_scores(obj_prob_filtered, dset_file, index):
     group = dset_file.create_group(f'{index}')
-    group.create_dataset(f'obj_scores', data=np.concatenate([np.array(obj_prob_sorted_filtered[0]), np.array(background_prob_sorted_filtered[0])]))
+    group.create_dataset(f'obj_scores', data=np.array(obj_prob_filtered))
     
     
+import matplotlib.pyplot as plt
+def histogram_visualization(layers_obj_scores, layers_obj_scores_class_name):
+    """
+    Visualize histogram of objectness scores separated by class (object vs background).
+    
+    Args:
+        layers_obj_scores: Array of objectness scores, shape (N,)
+        layers_obj_scores_class_name: Array of class names, shape (N,)
+    """
+    # Separate scores by class
+    object_mask = layers_obj_scores_class_name == 'object'
+    background_mask = layers_obj_scores_class_name == 'background'
+    
+    obj_scores = layers_obj_scores[object_mask]
+    bg_scores = layers_obj_scores[background_mask]
+    
+    # Calculate statistics
+    obj_mean = np.mean(obj_scores)
+    obj_std = np.std(obj_scores)
+    bg_mean = np.mean(bg_scores)
+    bg_std = np.std(bg_scores)
+    
+    print(f"\nObject scores: count={len(obj_scores)}, mean={obj_mean:.4f}, std={obj_std:.4f}")
+    print(f"Background scores: count={len(bg_scores)}, mean={bg_mean:.4f}, std={bg_std:.4f}")
+    
+    # Create figure with subplots
+    fig, axe = plt.subplots(figsize=(10, 6))
+    
+    axe.hist(obj_scores, bins=50, alpha=0.7, label=f'Object (n={len(obj_scores)})', 
+             edgecolor='black', color='blue')
+    axe.hist(bg_scores, bins=50, alpha=0.7, label=f'Background (n={len(bg_scores)})', 
+             edgecolor='black', color='red')
+    axe.set_xlabel('Objectness Score', fontsize=12)
+    axe.set_ylabel('Frequency', fontsize=12)
+    axe.set_title(f'Objectness Score Distribution\nObject: μ={obj_mean:.4f}, σ={obj_std:.4f}\nBackground: μ={bg_mean:.4f}, σ={bg_std:.4f}', 
+                 fontsize=11)
+    axe.legend(fontsize=10)
+    axe.grid(True, alpha=0.3)
+    
+    # Save plot
+    save_path = '/home/khoadv/projects/OOD_OD/PROB_Exploring/trash/a.png'
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"\nSaved histogram plot to '{save_path}'")
+    plt.close()
