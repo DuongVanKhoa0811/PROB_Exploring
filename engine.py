@@ -135,12 +135,12 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         # Note: targets boxes are already in xyxy format after transforms, but we need to ensure they're on the right device
         targets_for_iou = copy.deepcopy(targets)  # Already in correct format
         
-        obj_features, class_name, obj_prob_sorted_filtered, background_prob_sorted_filtered = extract_obj(
+        class_name, obj_prob_sorted_filtered = extract_obj(
             outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, 
             pred_per_im=100, dataset_name=args.dataset, 
             targets=targets_for_iou, iou_threshold=0.5
         )
-        save_obj_scores(obj_prob_sorted_filtered, background_prob_sorted_filtered, id_file, index=save_idx)
+        save_obj_scores(obj_prob_sorted_filtered, id_file, index=save_idx)
         class_name_file.create_dataset(f'{save_idx}', data=class_name) 
         save_idx += 1
         
