@@ -27,6 +27,7 @@ from .segmentation import sigmoid_focal_loss as seg_sigmoid_focal_loss
 from .deformable_transformer import build_deforamble_transformer
 import copy
 
+from . import pmath
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -117,6 +118,183 @@ class FullProbObjectnessHead(nn.Module):
         return self.mahalanobis(x)
 
 
+class HyperbolicProbObjectnessHead(nn.Module):
+    """
+    Hyperbolic analogue of PROB's objectness loss L_o (Eq. 5 in PROB), built by replacing 
+    the Euclidean/Mahalanobis term with the Poincaré-ball hyperbolic distance (Eq. 2 in Hyp-OW), 
+    after mapping queries into the Poincaré ball.
+    
+    This class computes the hyperbolic objectness loss:
+    L_o^hyp = Σ_{i∈Z} d_hyp(z_i, z̄)^2
+    
+    where:
+    - z_i are query embeddings projected into the Poincaré ball B_c^D
+    - z̄ is the hyperbolic centroid (hyperbolic average) of all queries
+    - d_hyp is the Poincaré-ball hyperbolic distance
+    """
+    def __init__(self, hidden_dim=256, device='cpu', c=0.1, momentum=0.1):
+        super().__init__()
+        self.flatten = nn.Flatten(0, 1)
+        self.momentum = momentum
+        # Hyperbolic centroid z̄ (analogue of μ in PROB)
+        # Initialize at origin (0) in Poincaré ball
+        self.obj_centroid = nn.Parameter(torch.zeros(hidden_dim, device=device), requires_grad=False)
+        self.device = device
+        self.hidden_dim = hidden_dim
+        self.c = c  # Curvature of Poincaré ball
+            
+    def update_centroid(self, x):
+        """
+        Update the hyperbolic centroid using hyperbolic average (HypAve / Lorentz-factor weighted average).
+        This is applied to all queries (not just matched ones) to maintain a stable centroid.
+        Following Hyp-OW, we use the hyperbolic average (poincare_mean) which is the 
+        Lorentz-factor weighted average.
+        """
+        # x is already in Poincaré ball: [batch_size, num_queries, hidden_dim]
+        out = self.flatten(x).detach()  # [batch_size * num_queries, hidden_dim]
+        
+        # Compute hyperbolic mean (poincare_mean) of all queries
+        # This is the hyperbolic average as mentioned in Hyp-OW Eq. 4
+        # It computes the Lorentz-factor weighted average in Klein model, then projects back to Poincaré ball
+        current_centroid = pmath.poincare_mean(out, dim=0, c=self.c)
+        
+        # Update centroid with momentum (similar to PROB's update)
+        # In hyperbolic space, we use geodesic interpolation via exponential/logarithmic maps
+        if torch.norm(self.obj_centroid.data) < 1e-6:
+            # Initialize with current centroid if starting from origin
+            self.obj_centroid.data = current_centroid
+        else:
+            # Use geodesic interpolation in hyperbolic space for proper momentum update
+            # Interpolate along the geodesic from old centroid to new centroid
+            # logmap gives us the direction vector, then we scale it by momentum
+            direction = pmath.logmap(self.obj_centroid.data, current_centroid, c=self.c)
+            # Move along the geodesic by momentum amount
+            self.obj_centroid.data = pmath.expmap(self.obj_centroid.data, self.momentum * direction, c=self.c)
+            # Project back to Poincaré ball to ensure numerical stability
+            self.obj_centroid.data = pmath.project(self.obj_centroid.data, c=self.c)
+        return
+        
+    def hyperbolic_distance_squared(self, x):
+        """
+        Compute squared hyperbolic distance from each query embedding to the hyperbolic centroid.
+        
+        Args:
+            x: Query embeddings in Poincaré ball [batch_size, num_queries, hidden_dim]
+            
+        Returns:
+            Squared hyperbolic distances [batch_size, num_queries]
+        """
+        out = self.flatten(x)  # [batch_size * num_queries, hidden_dim]
+        
+        # Compute hyperbolic distance: d_hyp(z_i, z̄)
+        # Using pmath.dist which implements: d_hyp(x, y) = (2/√c) * arctanh(√c ||-x ⊕_c y||)
+        # Broadcast centroid to match batch dimension
+        centroid = self.obj_centroid.unsqueeze(0).expand_as(out)  # [batch_size * num_queries, hidden_dim]
+        dists = pmath.dist(out, centroid, c=self.c)  # [batch_size * num_queries]
+        
+        # Square the distances: d_hyp(z_i, z̄)^2
+        dists_squared = dists ** 2
+        
+        # Reshape back to original shape
+        return dists_squared.unflatten(0, x.shape[:2])
+    
+    def set_momentum(self, m):
+        self.momentum = m
+        return
+    
+    def forward(self, x):
+        """
+        Forward pass computes squared hyperbolic distance to centroid.
+        
+        Args:
+            x: Query embeddings already in Poincaré ball [batch_size, num_queries, hidden_dim]
+            
+        Returns:
+            Squared hyperbolic distances [batch_size, num_queries]
+        """
+        if self.training:
+            self.update_centroid(x)
+        return self.hyperbolic_distance_squared(x)
+
+
+class FeatureProjector(nn.Module):
+    def __init__(self, dim=256, hidden_dim=512, dropout=0.1):
+        super().__init__()
+        self.fc1 = nn.Linear(dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, dim)
+        self.norm = nn.LayerNorm(dim)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.ReLU()
+    
+    def forward(self, x):
+        identity = x
+        x = self.fc1(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.dropout(x)
+        x = identity + x  # Residual connection
+        x = self.norm(x)
+        return x
+    
+
+# Hyp-OW paper
+class ToPoincare(nn.Module):
+    r"""
+    Module which maps points in n-dim Euclidean space
+    to n-dim Poincare ball
+    Also implements clipping from https://arxiv.org/pdf/2107.11472.pdf
+    """
+
+    def __init__(self, c, train_c=False, train_x=False, ball_dim=None, riemannian=True, clip_r=None):
+        super(ToPoincare, self).__init__()
+        if train_x:
+            if ball_dim is None:
+                raise ValueError(
+                    "if train_x=True, ball_dim has to be integer, got {}".format(
+                        ball_dim
+                    )
+                )
+            self.xp = nn.Parameter(torch.zeros((ball_dim,)))
+        else:
+            self.register_parameter("xp", None)
+
+        if train_c:
+            self.c = nn.Parameter(torch.Tensor([c,]))
+        else:
+            self.c = c
+
+        self.train_x = train_x
+
+        self.riemannian = pmath.RiemannianGradient
+        self.riemannian.c = c
+        
+        self.clip_r = clip_r
+        
+        if riemannian:
+            self.grad_fix = lambda x: self.riemannian.apply(x)
+        else:
+            self.grad_fix = lambda x: x
+
+    def forward(self, x):
+        if self.clip_r is not None:
+            #ForkedPdb().set_trace()
+            x_norm = torch.norm(x, dim=-1, keepdim=True) + 1e-5
+            fac =  torch.minimum(
+                torch.ones_like(x_norm), 
+                self.clip_r / x_norm
+            )
+            x = x * fac
+            
+        if self.train_x:
+            xp = pmath.project(pmath.expmap0(self.xp, c=self.c), c=self.c)
+            return self.grad_fix(pmath.project(pmath.expmap(xp, x, c=self.c), c=self.c))
+        return self.grad_fix(pmath.project(pmath.expmap0(x, c=self.c), c=self.c))
+
+    def extra_repr(self):
+        return "c={}, train_x={}".format(self.c, self.train_x)
+
+
 class DeformableDETR(nn.Module):
     """ This is the Deformable DETR module that performs object detection """
     def __init__(self, backbone, transformer, num_classes, num_queries, num_feature_levels,
@@ -139,7 +317,13 @@ class DeformableDETR(nn.Module):
         
         self.class_embed = nn.Linear(hidden_dim, num_classes)
         self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
-        self.prob_obj_head = ProbObjectnessHead(hidden_dim)
+        # Use hyperbolic objectness head instead of Euclidean one
+        # The queries are already projected to Poincaré ball in forward pass
+        hyperbolic_c = 0.1  # Match the curvature used in ToPoincare
+        self.prob_obj_head = HyperbolicProbObjectnessHead(hidden_dim, device='cpu', c=hyperbolic_c)
+        self.feature_projector = FeatureProjector(dim=hidden_dim, hidden_dim=hidden_dim*2) #
+        self.tpc = ToPoincare(c=hyperbolic_c,ball_dim=256,riemannian=False,clip_r=1.0) #
+        
 
         self.num_feature_levels = num_feature_levels
         if not two_stage:
@@ -186,6 +370,8 @@ class DeformableDETR(nn.Module):
             self.class_embed = _get_clones(self.class_embed, num_pred)
             self.bbox_embed = _get_clones(self.bbox_embed, num_pred)
             self.prob_obj_head =  _get_clones(self.prob_obj_head, num_pred)
+            self.feature_projector =  _get_clones(self.feature_projector, num_pred) #
+            self.tpc =  _get_clones(self.tpc, num_pred) #
             nn.init.constant_(self.bbox_embed[0].layers[-1].bias.data[2:], -2.0)
             # hack implementation for iterative bounding box refinement
             self.transformer.decoder.bbox_embed = self.bbox_embed
@@ -194,6 +380,8 @@ class DeformableDETR(nn.Module):
             self.class_embed = nn.ModuleList([self.class_embed for _ in range(num_pred)])
             self.bbox_embed = nn.ModuleList([self.bbox_embed for _ in range(num_pred)])
             self.prob_obj_head = nn.ModuleList([self.prob_obj_head for _ in range(num_pred)])
+            self.feature_projector = nn.ModuleList([self.feature_projector for _ in range(num_pred)]) #
+            self.tpc = nn.ModuleList([self.tpc for _ in range(num_pred)]) #
             self.transformer.decoder.bbox_embed = None
         if two_stage:
             # hack implementation for two-stage
@@ -202,7 +390,7 @@ class DeformableDETR(nn.Module):
                 nn.init.constant_(box_embed.layers[-1].bias.data[2:], 0.0)
 
     def forward(self, samples: NestedTensor):
-        """ The forward expects a NestedTensor, which consists of:
+        """ The forward expects a NestedTensor, which consists of:
                - samples.tensor: batched images, of shape [batch_size x 3 x H x W]
                - samples.mask: a binary mask of shape [batch_size x H x W], containing 1 on padded pixels
 
@@ -250,14 +438,17 @@ class DeformableDETR(nn.Module):
         outputs_coords = []
         outputs_objectnesses = []
 
+        hs_proj_pc = [] #
         for lvl in range(hs.shape[0]):
+            hs_proj_pc.append(self.tpc[lvl](self.feature_projector[lvl](hs[lvl]))) #
+            
             if lvl == 0:
                 reference = init_reference
             else:
                 reference = inter_references[lvl - 1]
             reference = inverse_sigmoid(reference)
             outputs_class = self.class_embed[lvl](hs[lvl])
-            outputs_objectness = self.prob_obj_head[lvl](hs[lvl])
+            outputs_objectness = self.prob_obj_head[lvl](hs_proj_pc[lvl])
 
             tmp = self.bbox_embed[lvl](hs[lvl])
             if reference.shape[-1] == 4:
@@ -343,11 +534,13 @@ class SetCriterion(nn.Module):
         loss_ce = sigmoid_focal_loss(src_logits, target_classes_onehot, num_boxes, alpha=self.focal_alpha, 
                                      num_classes=self.num_classes, empty_weight=self.empty_weight) * src_logits.shape[1]
 
-        losses = {'loss_ce': loss_ce}
+        # losses = {'loss_ce': loss_ce}
+        losses = {'loss_ce': torch.tensor(1).to('cuda')}
 
         if log:
             # TODO this should probably be a separate loss, not hacked in this one here
             losses['class_error'] = 100 - accuracy(src_logits[idx], target_classes_o)[0]
+        
         return losses
 
     @torch.no_grad()
@@ -377,12 +570,14 @@ class SetCriterion(nn.Module):
         loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
 
         losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
+        # losses['loss_bbox'] = loss_bbox.sum() / num_boxes
+        losses['loss_bbox'] = torch.tensor(1).to('cuda')
 
         loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
             box_ops.box_cxcywh_to_xyxy(src_boxes),
             box_ops.box_cxcywh_to_xyxy(target_boxes)))
-        losses['loss_giou'] = loss_giou.sum() / num_boxes
+        # losses['loss_giou'] = loss_giou.sum() / num_boxes
+        losses['loss_giou'] = torch.tensor(1).to('cuda')
         return losses
 
     def loss_masks(self, outputs, targets, indices, num_boxes):

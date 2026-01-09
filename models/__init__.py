@@ -10,6 +10,10 @@
 def build_model(args, mode='owdetr'):
     if mode == 'prob':
         from .prob_deformable_detr import build
+    elif mode == 'prob_obj':
+        from .prob_obj_deformable_detr import build
+    elif mode == 'prob_obj_hyp':
+        from .prob_obj_hyp_deformable_detr import build
     else:
         from .deformable_detr import build
     return build(args)
