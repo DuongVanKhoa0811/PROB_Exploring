@@ -233,7 +233,7 @@ def main():
         "Top-K detections",
         min_value=1,
         max_value=100,
-        value=10,
+        value=5,
         step=1,
     )
     
@@ -301,14 +301,19 @@ def main():
         help="Upload an image to detect unknown objects"
     )
     
-    if uploaded_file is not None:
+    # if uploaded_file is not None: # eeee
+    import time
+    uploaded_files = [os.path.join('./trash/unknown_only_TOWOD_owod_all_task_test', f) for f in os.listdir('./trash/unknown_only_TOWOD_owod_all_task_test')]
+    for uploaded_file in uploaded_files:
+        time.sleep(2)
         # Display original image
         image = Image.open(uploaded_file).convert('RGB')
         st.subheader("Original Image")
         st.image(image, width=300)
         
         # Run inference
-        if st.button("Run Inference", type="primary"):
+        # if st.button("Run Inference", type="primary"):
+        if True:
             with st.spinner("Running inference on all three models..."):
                 try:
                     device = torch.device(device_option)
@@ -408,4 +413,30 @@ def main():
 if __name__ == "__main__":
     main()
 
+    
+    # image = Image.open('/home/khoadv/projects/OOD_OD/PROB_Exploring/trash/000001.jpg').convert('RGB')
+    # image_tensor, orig_size = preprocess_image(image)
+
+
+    # parser = argparse.ArgumentParser('Deformable DETR training and evaluation script', parents=[get_args_parser()])
+    # args = parser.parse_args()
+
+    # torch.manual_seed(args.seed)
+    # np.random.seed(args.seed)
+
+    # args.device = 'cuda'
+
+    # models = load_models(args)
+    
+    # for model_name, (model, postprocessor) in models.items():
+    #     results = run_inference(model, postprocessor, image_tensor, orig_size, 'cuda')
+
+    #     # Filter for unknown predictions
+    #     filtered_results = filter_unknown_predictions(
+    #         results, 
+    #         args.num_classes, 
+    #         10,
+    #     )
+    
+    
     pass
