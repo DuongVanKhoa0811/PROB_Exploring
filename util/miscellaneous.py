@@ -184,24 +184,6 @@ def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data
         if draw_bb_verbose: print('Save draw predicted boxes on image', os.path.join(save_folder, img_name.replace('.jpg', '_with_bb.jpg')))
 
 
-def copy_images_containing_exclusively_unknown(targets, dataset_name, test_set, data_root):
-
-    save_folder = f'./trash/unknown_only_{dataset_name}_{test_set}'
-    imgs_folder = './data/OWOD/JPEGImages'
-    os.makedirs(save_folder, exist_ok=True)
-
-    map_image_id_to_filename = read_image_id_to_filename(dataset_name, test_set, data_root)
-    dataset_VOC_COCO_CLASS_NAMES = VOC_COCO_CLASS_NAMES[dataset_name]
-    
-    for idx_result in range(len(targets)):
-        img_name = map_image_id_to_filename[int(targets[idx_result]['image_id'])] + '.jpg'
-        img_path = os.path.join(imgs_folder, img_name)
-        
-        labels = [dataset_VOC_COCO_CLASS_NAMES[int(label)] for label in targets[idx_result]['labels']]
-        if len(set(labels)) == 1 and labels[0] == 'unknown':
-            shutil.copy(img_path, os.path.join(save_folder, img_name))
-            print(f'Copied image with unknown only: {img_path} to {os.path.join(save_folder, img_name)}')
-
 if __name__ == '__main__':
     
     pass

@@ -375,9 +375,9 @@ def Hyp_OW_Superclass_mapping(dataset, train_set):
                                     40:9,41:9,42:9,43:9,44:9,45:9,46:9,47:9,48:9,49:9, \
                                 50:10,51:10,52:10,53:10,54:10,55:10,56:10,57:10,58:10,59:10,\
                                 }
-                
-                
-                
+            
+            
+            
                 family_mapping={0:torch.Tensor([0,1,3,5,6,13,18,              20]).long(),\
                             1:torch.Tensor([2,7,9,11,12,16,                26,27,28,29 ]).long(),  \
                             2:torch.Tensor([4]).long(),\
@@ -548,14 +548,14 @@ def convert_class_name_to_superclass(labels, class_mapping, family_mapping, hyp_
     return np.array(transform_labels)
 
 
-def load_obj_features(objfeatures_filename, background_features_filename=None):
+def load_obj_features(objfeatures_filename):
     with h5py.File(f'/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/{objfeatures_filename}.h5', 'r') as file:
         with h5py.File(f'/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/{objfeatures_filename}_class_name.h5', 'r') as class_name_file:
             print(len(file.keys()))
             layers_obj_features = {}
             layers_obj_features_class_name = []
             
-            # Load object data
+            # Load data
             for idx, sample_key in enumerate(file.keys()):
                 class_names = class_name_file[sample_key][:]
                 class_names = [name.decode('utf-8') for name in class_names]
@@ -567,38 +567,16 @@ def load_obj_features(objfeatures_filename, background_features_filename=None):
                             layers_obj_features[subkey] = []
                         layers_obj_features[subkey].append(np.array(file[sample_key][key][subkey]))
 
-            # Load background features if provided
-            if background_features_filename is not None:
-                with h5py.File(f'/home/khoadv/projects/OOD_OD/PROB_Exploring/data/OWOD/ObjFeatures/{background_features_filename}.h5', 'r') as bg_file:
-                    print(f"Loading background features from {background_features_filename}")
-                    for idx, sample_key in enumerate(bg_file.keys()):
-                        # Add "background" label for all background features
-                        
-                        add_label_idx = False
-                        
-                        for key in bg_file[sample_key].keys():
-                            for subkey in bg_file[sample_key][key].keys():
-                                assert subkey in layers_obj_features
-                                num_bg_samples = bg_file[sample_key][key][subkey].shape[0]
-                                if not add_label_idx:
-                                    layers_obj_features_class_name.extend(['background'] * num_bg_samples)
-                                    add_label_idx = True
-                                layers_obj_features[subkey].append(np.array(bg_file[sample_key][key][subkey]))
-
             # Post processing            
             for subkey in layers_obj_features.keys():
                 layers_obj_features[subkey] = np.concatenate(layers_obj_features[subkey], axis=0)
-                print('layers_obj_features[subkey]', layers_obj_features[subkey].shape)
             layers_obj_features_class_name = np.array(layers_obj_features_class_name)
-            print('layers_obj_features_class_name', layers_obj_features_class_name.shape)
 
     return layers_obj_features, layers_obj_features_class_name
 
 
 def random_sampling(data, labels, m):
     np.random.seed(42)
-    if labels.shape[0] < m:
-        return data, labels
     indices = np.random.choice(data.shape[0], m, replace=False)
     sampled_data = data[indices]
     sampled_labels = labels[indices]
@@ -607,35 +585,10 @@ def random_sampling(data, labels, m):
 def random_sampling_except_unknown(data, labels, m):
     np.random.seed(42)
     known_indices = np.where(labels != 'unknown')[0]
-    if known_indices.shape[0] >= m:
-        known_indices = np.random.choice(known_indices, m, replace=False)
+    known_indices = np.random.choice(known_indices, m, replace=False)
     sampled_data = data[known_indices]
     sampled_labels = labels[known_indices]
     return sampled_data, sampled_labels
-
-def random_sampling_with_background(data, labels, m):
-    """Sample m points, keeping background separate but limiting its count"""
-    np.random.seed(42)
-    bg_indices = np.where(labels == 'background')[0]
-    obj_indices = np.where(labels != 'background')[0]
-    
-    # Sample background (limit to m/4 or all if less)
-    bg_sample_size = min(len(bg_indices), m // 4)
-    if bg_sample_size > 0:
-        bg_sampled = np.random.choice(bg_indices, bg_sample_size, replace=False)
-    else:
-        bg_sampled = np.array([], dtype=int)
-    
-    # Sample objects for the rest
-    obj_sample_size = m - len(bg_sampled)
-    if len(obj_indices) >= obj_sample_size:
-        obj_sampled = np.random.choice(obj_indices, obj_sample_size, replace=False)
-    else:
-        obj_sampled = obj_indices
-    
-    # Combine
-    all_indices = np.concatenate([bg_sampled, obj_sampled])
-    return data[all_indices], labels[all_indices]
 
 
 def tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_function, save_path_lambda, super_class_transform=None):
@@ -647,20 +600,8 @@ def tsne_visualization(layers_obj_features, layers_obj_features_class_name, rand
 
             sampled_data, sampled_labels = random_sampling_function(layers_obj_features[subkey], layers_obj_features_class_name, m=5000)
             
-            # Don't apply super_class_transform to background
             if super_class_transform is not None:
-                bg_mask = sampled_labels == 'background'
-                unknown_mask = sampled_labels == 'unknown'
-                obj_mask = ~(bg_mask | unknown_mask)
-                transformed_labels = sampled_labels.copy()
-                if obj_mask.sum() > 0:
-                    transformed_labels[obj_mask] = convert_class_name_to_superclass(
-                        sampled_labels[obj_mask], 
-                        super_class_transform['class_mapping'], 
-                        super_class_transform['family_mapping'], 
-                        super_class_transform['hyp_dataset_class_names']
-                    )
-                sampled_labels = transformed_labels
+                sampled_labels = convert_class_name_to_superclass(sampled_labels, super_class_transform['class_mapping'], super_class_transform['family_mapping'], super_class_transform['hyp_dataset_class_names'])
             
             # Get unique classes and create a mapping to numeric labels
             unique_classes = np.unique(sampled_labels)
@@ -683,21 +624,19 @@ def tsne_visualization(layers_obj_features, layers_obj_features_class_name, rand
             scatter = plt.scatter(data_2d[:, 0], data_2d[:, 1], 
                                 c=numeric_labels, 
                                 cmap=cmap,
-                                vmin=-0.5,
+                                vmin=-0.5,              # Center ticks on colors
                                 vmax=len(unique_classes) - 0.5,
                                 alpha=0.6, 
                                 s=10)
             
-            # Add colorbar or legend with larger text
+            # Add colorbar or legend
             cbar = plt.colorbar(scatter, ticks=range(len(unique_classes)))
-            cbar.ax.set_yticklabels(unique_classes, fontsize=14)
-            cbar.set_label('Class', fontsize=16)
+            cbar.ax.set_yticklabels(unique_classes)
+            cbar.set_label('Class')
             
-            plt.xlabel('t-SNE 1', fontsize=16)
-            plt.ylabel('t-SNE 2', fontsize=16)
-            plt.title(f't-SNE Visualization - {subkey}', fontsize=18)
-            plt.xticks(fontsize=14)
-            plt.yticks(fontsize=14)
+            plt.xlabel('t-SNE 1')
+            plt.ylabel('t-SNE 2')
+            plt.title(f't-SNE Visualization - {subkey}')
             plt.tight_layout()
             plt.savefig(save_path_lambda(subkey), dpi=150)
             plt.close()
@@ -705,30 +644,30 @@ def tsne_visualization(layers_obj_features, layers_obj_features_class_name, rand
 
 if __name__ == '__main__':
     objfeatures_filename = 'objfeatures_V10_IoU06'
-    background_features_filename = 'objfeatures_V10_less_IoU01'
     
-    # 1.0 TSNE Visualization with background
-    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename, background_features_filename)
-    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_with_background, lambda x: f'../trash/tsne_plot_IoU06_{x}.png')
+    # 1.0 TSNE Visualization
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_IoU06_{x}.png')
 
-    # 1.1 TSNE Visualization for super-class with background
+    # 1.1 TSNE Visualization for super-class
     class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
     hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
     super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
-    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename, background_features_filename)
-    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_with_background, lambda x: f'../trash/tsne_plot_IoU06_{x}_super_class.png', super_class_transform)
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
+    tsne_visualization(layers_obj_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_IoU06_{x}_super_class.png', super_class_transform)
 
-    # # 1.2 Hyperbolic visualization
-    # layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename, background_features_filename)
-    # hyperbolic_features = to_hyperbolic(layers_obj_features)
-    # tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_with_background, lambda x: f'../trash/tsne_plot_IoU06_{x}_hyperbolic.png')
+    # 1.2 Hyperbolic visualization
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
+    hyperbolic_features = to_hyperbolic(layers_obj_features)
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_IoU06_{x}_hyperbolic.png')
     
-    # # 1.3 Hyperbolic visualization for super-class
-    # class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
-    # hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
-    # super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
-    # layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename, background_features_filename)
-    # hyperbolic_features = to_hyperbolic(layers_obj_features)
-    # tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_with_background, lambda x: f'../trash/tsne_plot_IoU06_{x}_hyperbolic_super_class.png', super_class_transform)
+    # 1.3 Hyperbolic visualization for super-class
+    class_mapping, family_mapping = Hyp_OW_Superclass_mapping('TOWOD', 't4')
+    hyp_dataset_class_names = Hyp_OW_class_name()['TOWOD']
+    super_class_transform = {'class_mapping': class_mapping, 'family_mapping': family_mapping, 'hyp_dataset_class_names': hyp_dataset_class_names}
+    layers_obj_features, layers_obj_features_class_name = load_obj_features(objfeatures_filename)
+    hyperbolic_features = to_hyperbolic(layers_obj_features)
+    tsne_visualization(hyperbolic_features, layers_obj_features_class_name, random_sampling_except_unknown, lambda x: f'../trash/tsne_plot_IoU06_{x}_hyperbolic_super_class.png', super_class_transform)
+    
     
     pass
