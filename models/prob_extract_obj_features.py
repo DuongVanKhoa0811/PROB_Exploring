@@ -308,11 +308,21 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
             # Filter by IoU and label matching if targets are provided
             if targets is not None and len(targets) > batch_idx:
                 target = targets[batch_idx]
-                gt_boxes = target['boxes']  # [M, 4] in xyxy format (after transforms)
                 gt_labels = target['labels']  # [M]
+
+                gt_boxes = target['boxes']  # [M, 4] in xyxy format (after transforms)
+                gt_boxes_xyxy = box_cxcywh_to_xyxy(gt_boxes)
+                gt_boxes_xyxy_np = gt_boxes_xyxy.cpu().numpy()  # [M, 4]
                 
-                # Convert gt_boxes to numpy for IoU computation (matching open_world_eval.py format)
-                gt_boxes_np = gt_boxes.cpu().numpy()  # [M, 4]
+                # Get target sizes
+                target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)        
+                img_h, img_w = target_sizes.unbind(1)
+                scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
+                
+                # Scale gt_boxes_xyxy_np to the original image size
+                gt_boxes_xyxy_np = torch.from_numpy(gt_boxes_xyxy_np)[None].to(device='cuda')
+                gt_boxes_xyxy_np = gt_boxes_xyxy_np * scale_fct[:, None, :]
+                gt_boxes_xyxy_np = gt_boxes_xyxy_np[0].cpu().numpy()
                 
                 # Create filter mask: IoU > threshold AND label matches
                 valid_mask = torch.zeros(len(batch_pred_boxes_topk), dtype=torch.bool, device=batch_pred_boxes_topk.device)
@@ -344,14 +354,19 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
                         jmax = np.argmax(overlaps) if len(overlaps) > 0 else -1
                         return ovmax, jmax
                     
-                    ovmax, jmax = iou(gt_boxes_np, pred_box)
+                    # Scale pred_box to the original image size
+                    pred_box = torch.from_numpy(pred_box)[None][None].to(device='cuda')
+                    pred_box = pred_box * scale_fct[:, None, :]
+                    pred_box = pred_box[0][0].cpu().numpy()
+                    
+                    ovmax, jmax = iou(gt_boxes_xyxy_np, pred_box)
                     
                     # Check if IoU > threshold and label matches
                     if ovmax > iou_threshold and jmax >= 0:
                         gt_label = gt_labels[jmax].item()
                         if pred_label == gt_label:
                             valid_mask[pred_idx] = True
-                
+                            
                 # Combine with score threshold mask
                 final_mask = scores_example_mask & valid_mask
             else:
