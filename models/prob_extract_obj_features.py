@@ -387,7 +387,7 @@ def extract_obj(outputs, tracker, invalid_cls_logits, temperature, pred_per_im, 
     ########################################################################################
     tracker.flush_features()
     
-    return examples_top_query_features, no_objects, class_name
+    return examples_top_query_features, no_objects, class_name, final_mask
 
 
 def save_obj_features(features, dset_file, index):

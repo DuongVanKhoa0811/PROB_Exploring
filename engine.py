@@ -109,8 +109,8 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessors.keys())
     coco_evaluator = OWEvaluator(base_ds, iou_types, args=args)
     
-    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10_IoU06.h5', 'w')
-    class_name_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10_IoU06_class_name.h5', 'w')
+    id_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10_IoU06_tmp.h5', 'w')
+    class_name_file = h5py.File('./data/OWOD/ObjFeatures/objfeatures_V10_IoU06_class_name_tmp.h5', 'w')
     tracker = featureTracker(model, variant='DDETR')
     save_idx = 0
     
@@ -122,10 +122,18 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             output_dir=os.path.join(output_dir, "panoptic_eval"),
         )
  
+    from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
+    dataset_VOC_COCO_CLASS_NAMES = VOC_COCO_CLASS_NAMES[args.dataset]
+    samples_count = 0
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
  
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        labels = [dataset_VOC_COCO_CLASS_NAMES[int(label)] for label in targets[0]['labels']]
+        if not (len(set(labels)) == 1 and labels[0] == 'unknown'):
+            continue
+        samples_count +=1
+        print(f'samples_count: {samples_count}')
         outputs = model(samples)
         
         invalid_cls_logits = list(range(args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS, args.num_classes-1))
@@ -134,10 +142,10 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         # Note: targets boxes are already in xyxy format after transforms, but we need to ensure they're on the right device
         targets_for_iou = copy.deepcopy(targets)  # Already in correct format
         
-        obj_features, no_objects, class_name = extract_obj(
+        obj_features, no_objects, class_name, final_mask = extract_obj(
             outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, 
             pred_per_im=100, dataset_name=args.dataset, 
-            targets=targets_for_iou, iou_threshold=0.6
+            targets=targets_for_iou, iou_threshold=0.5
         )
         if not no_objects: 
             save_obj_features(obj_features, id_file, index=save_idx)   
@@ -145,18 +153,19 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             save_idx += 1
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
-        results = postprocessors['bbox'](outputs, orig_target_sizes)
+        results = postprocessors['bbox'](outputs, orig_target_sizes, final_mask=final_mask)
         
         # ### My additional code to draw the predict boxes
-        # draw_bb = True
-        # dataset_name = args.dataset
-        # from util.miscellaneous import draw_pred_boxes
-        # if draw_bb:
-        #     if dataset_name == 'TOWOD':
-        #         draw_pred_boxes(results, targets, dataset_name, test_set=args.test_set, 
-        #                         data_root=args.data_root, 
-        #                         n_introduce_classes=args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS,
-        #                         draw_bb_verbose=False)
+        draw_bb = True
+        dataset_name = args.dataset
+        from util.miscellaneous import draw_pred_boxes
+        if draw_bb:
+            if dataset_name == 'TOWOD':
+                draw_pred_boxes(results, targets, dataset_name, test_set=args.test_set, 
+                                data_root=args.data_root, 
+                                n_introduce_classes=args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS,
+                                threshold=0.0,
+                                draw_bb_verbose=False)
  
         if 'segm' in postprocessors.keys():
             target_sizes = torch.stack([t["size"] for t in targets], dim=0)
