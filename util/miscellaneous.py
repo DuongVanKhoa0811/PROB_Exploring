@@ -110,7 +110,7 @@ def read_image_id_to_filename(dataset_name, test_set, data_root):
 
 def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data_root, n_introduce_classes, threshold=0.65, draw_bb_verbose=False):
 
-    save_folder = './trash/bb_images'
+    save_folder = './trash/bb_img_PROB_OBJ_HYP_unknown_only_TOWOD_owod_all_task_test'
     imgs_folder = './data/OWOD/JPEGImages'
 
     map_image_id_to_filename = read_image_id_to_filename(dataset_name, test_set, data_root)
@@ -170,13 +170,13 @@ def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data
             _text += ' ' + str(float(results_after_process[idx_result]['scores'][i]))[:5]
             
             if dataset_VOC_COCO_CLASS_NAMES[label] == 'unknown':
-                np_img_with_unknown_pred = cv2.rectangle(np_img_with_unknown_pred, (x1, y1), (x2, y2), color, 2)
-                np_img_with_unknown_pred = cv2.putText(np_img_with_unknown_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
+                np_img_with_unknown_pred = cv2.rectangle(np_img_with_unknown_pred, (x1, y1), (x2, y2), (255,0,0), 2)
+                # np_img_with_unknown_pred = cv2.putText(np_img_with_unknown_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
             else:
                 np_img_with_known_pred = cv2.rectangle(np_img_with_known_pred, (x1, y1), (x2, y2), color, 2)
-                np_img_with_known_pred = cv2.putText(np_img_with_known_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
-        np_img_with_known_pred = cv2.putText(np_img_with_known_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
-        np_img_with_unknown_pred = cv2.putText(np_img_with_unknown_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
+                # np_img_with_known_pred = cv2.putText(np_img_with_known_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
+        # np_img_with_known_pred = cv2.putText(np_img_with_known_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
+        # np_img_with_unknown_pred = cv2.putText(np_img_with_unknown_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
         
         np_img = np.hstack((np_img_with_gt, np_img_with_known_pred, np_img_with_unknown_pred))
         
