@@ -7,7 +7,7 @@ from itertools import combinations
 from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
 
 
-threshold = 0.5
+threshold = -1
 hook_version = 'v0' # [v0, v1]
 
 
