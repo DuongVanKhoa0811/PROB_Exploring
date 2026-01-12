@@ -109,7 +109,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     iou_types = tuple(k for k in ('segm', 'bbox') if k in postprocessors.keys())
     coco_evaluator = OWEvaluator(base_ds, iou_types, args=args)
     
-    # tracker = featureTracker(model, variant='DDETR')
+    tracker = featureTracker(model, variant='DDETR')
     
     panoptic_evaluator = None
     if 'panoptic' in postprocessors.keys():
@@ -131,25 +131,26 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         # Note: targets boxes are already in xyxy format after transforms, but we need to ensure they're on the right device
         targets_for_iou = copy.deepcopy(targets)  # Already in correct format
         
-        # obj_features, no_objects, class_name = extract_obj(
-        #     outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, 
-        #     pred_per_im=100, dataset_name=args.dataset, 
-        #     targets=targets_for_iou, iou_threshold=0.5
-        # )
+        obj_features, no_objects, class_name, final_mask = extract_obj(
+            outputs, tracker, invalid_cls_logits, args.obj_temp/args.hidden_dim, 
+            pred_per_im=100, dataset_name=args.dataset, 
+            targets=targets_for_iou, iou_threshold=0.5
+        )
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
-        results = postprocessors['bbox'](outputs, orig_target_sizes)
+        results = postprocessors['bbox'](outputs, orig_target_sizes, final_mask=final_mask)
         
-        # ### My additional code to draw the predict boxes
-        # draw_bb = True
-        # dataset_name = args.dataset
-        # from util.miscellaneous import draw_pred_boxes
-        # if draw_bb:
-        #     if dataset_name == 'TOWOD':
-        #         draw_pred_boxes(results, targets, dataset_name, test_set=args.test_set, 
-        #                         data_root=args.data_root, 
-        #                         n_introduce_classes=args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS,
-        #                         draw_bb_verbose=False)
+        ### My additional code to draw the predict boxes
+        draw_bb = True
+        dataset_name = args.dataset
+        from util.miscellaneous import draw_pred_boxes
+        if draw_bb:
+            if dataset_name == 'TOWOD':
+                draw_pred_boxes(results, targets, dataset_name, test_set=args.test_set, 
+                                data_root=args.data_root, 
+                                n_introduce_classes=args.PREV_INTRODUCED_CLS+args.CUR_INTRODUCED_CLS,
+                                threshold=0.0,
+                                draw_bb_verbose=False)
  
         if 'segm' in postprocessors.keys():
             target_sizes = torch.stack([t["size"] for t in targets], dim=0)

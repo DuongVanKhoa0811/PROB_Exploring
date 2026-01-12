@@ -125,7 +125,7 @@ def preprocess_image(image):
     return image_tensor, orig_size.unsqueeze(0)
 
 
-def filter_unknown_predictions(results, num_classes, top_k_detections=100):
+def filter_unknown_predictions(results, num_classes, top_k_detections=100, model_name=None):
     """Filter predictions to only show unknown bounding boxes, sorted by score (top-k)"""
     unknown_class_idx = num_classes - 1
     
@@ -148,11 +148,19 @@ def filter_unknown_predictions(results, num_classes, top_k_detections=100):
         if len(filtered_scores) > 0:
             top_k = min(top_k_detections, len(filtered_scores))
             
+            # if model_name == 'prob_obj_hyp':
+            #     filtered_result = {
+            #         'scores': filtered_scores[-top_k:],
+            #         'labels': filtered_labels[-top_k:],
+            #         'boxes': filtered_boxes[-top_k:]
+            #     }
+            # else:
             filtered_result = {
                 'scores': filtered_scores[:top_k],
                 'labels': filtered_labels[:top_k],
                 'boxes': filtered_boxes[:top_k]
             }
+            # print('*' * 100, model_name, filtered_scores[:top_k])
         else:
             filtered_result = {
                 'scores': torch.tensor([]),
@@ -301,14 +309,21 @@ def main():
         help="Upload an image to detect unknown objects"
     )
     
-    if uploaded_file is not None:
+    # if uploaded_file is not None: # eeee
+    import time
+    uploaded_files = [os.path.join('./trash/demo_bb_images/unknown_only_TOWOD_owod_all_task_test_select', f) for f in os.listdir('./trash/demo_bb_images/unknown_only_TOWOD_owod_all_task_test_select')]
+    for idx, uploaded_file in enumerate(uploaded_files):
+        if idx > 20: break
+        # if '000000283070.jpg' not in uploaded_file: continue
+        time.sleep(1)
         # Display original image
         image = Image.open(uploaded_file).convert('RGB')
         st.subheader("Original Image")
-        st.image(image, width=300)
+        # st.image(image, width=300)
         
         # Run inference
-        if st.button("Run Inference", type="primary"):
+        # if st.button("Run Inference", type="primary"):
+        if True:
             with st.spinner("Running inference on all three models..."):
                 try:
                     device = torch.device(device_option)
@@ -331,6 +346,7 @@ def main():
                             results, 
                             st.session_state.args_prob.num_classes, 
                             top_k_detections,
+                            model_name
                         )
                         
                         results_dict[model_name] = filtered_results
@@ -358,7 +374,7 @@ def main():
             
             # Display results if available
             if 'results' in st.session_state:
-                st.header("Results: Unknown Object Detections")
+                st.header(f"Results: Unknown Object Detections {uploaded_file}")
                 
                 # Display detection counts
                 st.subheader(f"Unknown Detection Counts (Top-K: {top_k_detections})")
@@ -389,20 +405,24 @@ def main():
                         else:
                             st.info("No detections")
                 
-                # Show detailed results
-                with st.expander("Detailed Detection Information"):
-                    for model_name in model_names:
-                        st.write(f"### {model_name}")
-                        if model_name in st.session_state.results:
-                            result = st.session_state.results[model_name][0]
-                            if len(result['boxes']) > 0:
-                                for i in range(len(result['boxes'])):
-                                    box = result['boxes'][i].cpu().numpy()
-                                    score = result['scores'][i].cpu().item()
-                                    st.write(f"  - Box: [{box[0]:.1f}, {box[1]:.1f}, {box[2]:.1f}, {box[3]:.1f}], Score: {score:.3f}")
-                            else:
-                                st.write("  - No detections")
-                        st.write("")
+                
+                uploaded_file_name = uploaded_file.split('/')[-1].replace('.jpg', '_with_bb.jpg')                
+                st.image(Image.open(os.path.join('./trash/demo_bb_images/bb_img_unknown_only_TOWOD_owod_all_task_test', uploaded_file_name)).convert('RGB'), width=900)
+                
+                # # Show detailed results
+                # with st.expander("Detailed Detection Information"):
+                #     for model_name in model_names:
+                #         st.write(f"### {model_name}")
+                #         if model_name in st.session_state.results:
+                #             result = st.session_state.results[model_name][0]
+                #             if len(result['boxes']) > 0:
+                #                 for i in range(len(result['boxes'])):
+                #                     box = result['boxes'][i].cpu().numpy()
+                #                     score = result['scores'][i].cpu().item()
+                #                     st.write(f"  - Box: [{box[0]:.1f}, {box[1]:.1f}, {box[2]:.1f}, {box[3]:.1f}], Score: {score:.3f}")
+                #             else:
+                #                 st.write("  - No detections")
+                #         st.write("")
         
 
 if __name__ == "__main__":

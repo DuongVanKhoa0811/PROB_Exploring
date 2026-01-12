@@ -709,7 +709,7 @@ class PostProcess(nn.Module):
         self.pred_per_im=pred_per_im
 
     @torch.no_grad()
-    def forward(self, outputs, target_sizes):
+    def forward(self, outputs, target_sizes, final_mask=None):
         """ Perform the computation
         Parameters:
             outputs: raw outputs of the model
@@ -737,6 +737,10 @@ class PostProcess(nn.Module):
         img_h, img_w = target_sizes.unbind(1)
         scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
         boxes = boxes * scale_fct[:, None, :]
+        if final_mask is not None:
+            scores = scores[:, final_mask]
+            labels = labels[:,final_mask]
+            boxes = boxes[:,final_mask]
         results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
         return results
 
