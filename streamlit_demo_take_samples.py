@@ -125,7 +125,7 @@ def preprocess_image(image):
     return image_tensor, orig_size.unsqueeze(0)
 
 
-def filter_unknown_predictions(results, num_classes, top_k_detections=100):
+def filter_unknown_predictions(results, num_classes, top_k_detections=100, model_name=None):
     """Filter predictions to only show unknown bounding boxes, sorted by score (top-k)"""
     unknown_class_idx = num_classes - 1
     
@@ -148,11 +148,19 @@ def filter_unknown_predictions(results, num_classes, top_k_detections=100):
         if len(filtered_scores) > 0:
             top_k = min(top_k_detections, len(filtered_scores))
             
+            # if model_name == 'prob_obj_hyp':
+            #     filtered_result = {
+            #         'scores': filtered_scores[-top_k:],
+            #         'labels': filtered_labels[-top_k:],
+            #         'boxes': filtered_boxes[-top_k:]
+            #     }
+            # else:
             filtered_result = {
                 'scores': filtered_scores[:top_k],
                 'labels': filtered_labels[:top_k],
                 'boxes': filtered_boxes[:top_k]
             }
+            # print('*' * 100, model_name, filtered_scores[:top_k])
         else:
             filtered_result = {
                 'scores': torch.tensor([]),
@@ -233,7 +241,7 @@ def main():
         "Top-K detections",
         min_value=1,
         max_value=100,
-        value=100,
+        value=10,
         step=1,
     )
     
@@ -304,8 +312,9 @@ def main():
     # if uploaded_file is not None: # eeee
     import time
     uploaded_files = [os.path.join('./trash/demo_bb_images/unknown_only_TOWOD_owod_all_task_test_select', f) for f in os.listdir('./trash/demo_bb_images/unknown_only_TOWOD_owod_all_task_test_select')]
-    for uploaded_file in uploaded_files:
-        if '000000129322.jpg' not in uploaded_file: continue
+    for idx, uploaded_file in enumerate(uploaded_files):
+        if idx > 20: break
+        # if '000000283070.jpg' not in uploaded_file: continue
         time.sleep(1)
         # Display original image
         image = Image.open(uploaded_file).convert('RGB')
@@ -337,6 +346,7 @@ def main():
                             results, 
                             st.session_state.args_prob.num_classes, 
                             top_k_detections,
+                            model_name
                         )
                         
                         results_dict[model_name] = filtered_results
