@@ -113,18 +113,13 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             output_dir=os.path.join(output_dir, "panoptic_eval"),
         )
  
-    samples_count = 0
-    n_samples = 200
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
-        samples_count += 1
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         outputs = model(samples)
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
-        results = postprocessors['bbox'](outputs, orig_target_sizes, save_list_obj_prob=samples_count == n_samples)
-        if samples_count == n_samples:
-            break
+        results = postprocessors['bbox'](outputs, orig_target_sizes)
  
         if 'segm' in postprocessors.keys():
             target_sizes = torch.stack([t["size"] for t in targets], dim=0)
