@@ -25,6 +25,7 @@ from util.box_ops import box_xyxy_to_cxcywh, box_cxcywh_to_xyxy
 from util.plot_utils import plot_prediction
 import matplotlib.pyplot as plt
 from copy import deepcopy
+import time
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -113,31 +114,66 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
             output_dir=os.path.join(output_dir, "panoptic_eval"),
         )
  
-    for samples, targets in metric_logger.log_every(data_loader, 10, header):
-        samples = samples.to(device)
-        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        outputs = model(samples)
+    # Timing accumulators
+    dataloader_time = 0.0
+    model_forward_time = 0.0
+    objectness_time = 0.0
+    num_batches = 0
+    
+    data_iter = iter(metric_logger.log_every(data_loader, 10, header))
+    while True:
+        try:
+            # Time data_loader (iteration time)
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+            dataloader_start = time.time()
+            
+            samples, targets = next(data_iter)
+            
+            # Move to device (this is part of data loading overhead)
+            samples = samples.to(device)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+            dataloader_end = time.time()
+            dataloader_time += (dataloader_end - dataloader_start)
+            
+            # Model forward pass (timing is done inside the model)
+            outputs = model(samples)
+            
+            # Get timing from model (stored during forward pass)
+            if hasattr(model, 'last_forward_without_objectness_time'):
+                model_forward_time += model.last_forward_without_objectness_time
+            if hasattr(model, 'last_objectness_time'):
+                objectness_time += model.last_objectness_time
+            
+            num_batches += 1
 
-        orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
-        results = postprocessors['bbox'](outputs, orig_target_sizes)
- 
-        if 'segm' in postprocessors.keys():
-            target_sizes = torch.stack([t["size"] for t in targets], dim=0)
-            results = postprocessors['segm'](results, outputs, orig_target_sizes, target_sizes)
-        res = {target['image_id'].item(): output for target, output in zip(targets, results)}
-        if coco_evaluator is not None:
-            coco_evaluator.update(res)
- 
-        if panoptic_evaluator is not None:
-            res_pano = postprocessors["panoptic"](outputs, target_sizes, orig_target_sizes)
-            for i, target in enumerate(targets):
-                image_id = target["image_id"].item()
-                file_name = f"{image_id:012d}.png"
-                res_pano[i]["image_id"] = image_id
-                res_pano[i]["file_name"] = file_name
- 
-            panoptic_evaluator.update(res_pano)
- 
+            orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
+            results = postprocessors['bbox'](outputs, orig_target_sizes)
+    
+            if 'segm' in postprocessors.keys():
+                target_sizes = torch.stack([t["size"] for t in targets], dim=0)
+                results = postprocessors['segm'](results, outputs, orig_target_sizes, target_sizes)
+            res = {target['image_id'].item(): output for target, output in zip(targets, results)}
+            if coco_evaluator is not None:
+                coco_evaluator.update(res)
+    
+            if panoptic_evaluator is not None:
+                res_pano = postprocessors["panoptic"](outputs, target_sizes, orig_target_sizes)
+                for i, target in enumerate(targets):
+                    image_id = target["image_id"].item()
+                    file_name = f"{image_id:012d}.png"
+                    res_pano[i]["image_id"] = image_id
+                    res_pano[i]["file_name"] = file_name
+    
+                panoptic_evaluator.update(res_pano)
+    
+        except Exception as e:
+            print(f"Error: {e}")
+            break
+        
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     # print("Averaged stats:", metric_logger)
@@ -145,6 +181,23 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         coco_evaluator.synchronize_between_processes()
     if panoptic_evaluator is not None:
         panoptic_evaluator.synchronize_between_processes()
+    
+    # Print timing results
+    if num_batches > 0:
+        avg_dataloader_time = dataloader_time / num_batches
+        avg_model_forward_time = model_forward_time / num_batches
+        avg_objectness_time = objectness_time / num_batches
+        avg_model_total = avg_model_forward_time + avg_objectness_time
+        
+        print("\n" + "="*60)
+        print("TIMING RESULTS (per batch)")
+        print("="*60)
+        print(f"DataLoader time:        {avg_dataloader_time*1000:.2f} ms")
+        print(f"Model forward (total):  {avg_model_total*1000:.2f} ms")
+        print(f"  - Without objectness: {avg_model_forward_time*1000:.2f} ms")
+        print(f"  - Objectness module:   {avg_objectness_time*1000:.2f} ms")
+        print(f"Total batches:          {num_batches}")
+        print("="*60 + "\n")
  
     # accumulate predictions from all images
     if coco_evaluator is not None:

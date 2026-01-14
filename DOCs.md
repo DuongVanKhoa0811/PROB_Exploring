@@ -18,3 +18,5 @@ login wandb
 + train: python -u main_open_world.py --output_dir exps/SOWODB/PROB_V1/t1 --dataset OWDETR --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 19 --train_set owdetr_t1_train --test_set owdetr_test --epochs 41 --lr_drop 31 --model_type prob --obj_loss_coef 1e-3 --obj_temp 1.3 --exemplar_replay_selection --exemplar_replay_max_length 850 --exemplar_replay_dir PROB_OWDETR_V1 --exemplar_replay_cur_file learned_owdetr_t1_ft.txt --batch_size 6
 
 + eval: python -u main_open_world.py --output_dir exps/MOWODB/PROB_test/eval --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 191 --lr_drop 35 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --pretrain exps/MOWODB/PROB_test/t1.pth --eval --batch_size 1
+
++ python -u main_open_world.py --output_dir exps/MOWODB/PROB_V16_1/eval --dataset TOWOD --PREV_INTRODUCED_CLS 0 --CUR_INTRODUCED_CLS 20 --train_set owod_t1_train --test_set owod_all_task_test --epochs 191 --lr_drop 35 --model_type prob --obj_loss_coef 8e-4 --obj_temp 1.3 --pretrain exps/MOWODB/PROB_V16_1/t1.pth --eval --wandb_project '' --batch_size 1
