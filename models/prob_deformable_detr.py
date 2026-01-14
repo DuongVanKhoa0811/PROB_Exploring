@@ -390,7 +390,7 @@ class DeformableDETR(nn.Module):
                 nn.init.constant_(box_embed.layers[-1].bias.data[2:], 0.0)
 
     def forward(self, samples: NestedTensor):
-        """ The forward expects a NestedTensor, which consists of:
+        """ The forward expects a NestedTensor, which consists of:
                - samples.tensor: batched images, of shape [batch_size x 3 x H x W]
                - samples.mask: a binary mask of shape [batch_size x H x W], containing 1 on padded pixels
 
@@ -404,6 +404,13 @@ class DeformableDETR(nn.Module):
                - "aux_outputs": Optional, only returned when auxilary losses are activated. It is a list of
                                 dictionnaries containing the two above keys for each decoder layer.
         """
+        import time
+        
+        # Measure forward pass without objectness
+        if next(self.parameters()).is_cuda:
+            torch.cuda.synchronize()
+        forward_start = time.time()
+        
         if not isinstance(samples, NestedTensor):
             samples = nested_tensor_from_tensor_list(samples)
         features, pos = self.backbone(samples)
@@ -438,6 +445,9 @@ class DeformableDETR(nn.Module):
         outputs_coords = []
         outputs_objectnesses = []
 
+        # Time objectness module separately
+        objectness_times = []
+        
         hs_proj_pc = [] #
         for lvl in range(hs.shape[0]):
             hs_proj_pc.append(self.tpc[lvl](self.feature_projector[lvl](hs[lvl]))) #
@@ -448,7 +458,16 @@ class DeformableDETR(nn.Module):
                 reference = inter_references[lvl - 1]
             reference = inverse_sigmoid(reference)
             outputs_class = self.class_embed[lvl](hs[lvl])
+            
+            # Time objectness module
+            if hs_proj_pc[lvl].is_cuda:
+                torch.cuda.synchronize()
+            obj_start = time.time()
             outputs_objectness = self.prob_obj_head[lvl](hs_proj_pc[lvl])
+            if hs_proj_pc[lvl].is_cuda:
+                torch.cuda.synchronize()
+            obj_end = time.time()
+            objectness_times.append((obj_end - obj_start))
 
             tmp = self.bbox_embed[lvl](hs[lvl])
             if reference.shape[-1] == 4:
@@ -474,6 +493,17 @@ class DeformableDETR(nn.Module):
         if self.two_stage:
             enc_outputs_coord = enc_outputs_coord_unact.sigmoid()
             out['enc_outputs'] = {'pred_logits': enc_outputs_class, 'pred_boxes': enc_outputs_coord}
+        
+        # End timing forward pass (after all operations)
+        if next(self.parameters()).is_cuda:
+            torch.cuda.synchronize()
+        forward_end = time.time()
+        
+        # Store timing results
+        # Total forward time minus objectness time = forward without objectness
+        self.last_forward_without_objectness_time = (forward_end - forward_start) - sum(objectness_times)
+        self.last_objectness_time = objectness_times[-1]
+        
         return out
 
     @torch.jit.unused
