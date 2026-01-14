@@ -125,12 +125,15 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     from datasets.torchvision_datasets.open_world import VOC_COCO_CLASS_NAMES
     dataset_VOC_COCO_CLASS_NAMES = VOC_COCO_CLASS_NAMES[args.dataset]
     samples_count = 0
+    cum_labels = []
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
  
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         labels = [dataset_VOC_COCO_CLASS_NAMES[int(label)] for label in targets[0]['labels']]
-        if not (len(set(labels)) == 1 and labels[0] == 'unknown'):
+        cum_labels.extend(labels)
+        assert len(set(cum_labels)) <= args.CUR_INTRODUCED_CLS + 1
+        if not (len(set(labels)) > 1 and 'unknown' in labels):
             continue
         samples_count +=1
         print(f'samples_count: {samples_count}')

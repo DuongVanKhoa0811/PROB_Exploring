@@ -110,7 +110,7 @@ def read_image_id_to_filename(dataset_name, test_set, data_root):
 
 def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data_root, n_introduce_classes, threshold=0.65, draw_bb_verbose=False):
 
-    save_folder = './trash/bb_img_PROB_OBJ_unknown_only_TOWOD_owod_all_task_test'
+    save_folder = './trash/bb_img_PROB_OBJ_known_and_unknown_TOWOD_owod_all_task_test'
     imgs_folder = './data/OWOD/JPEGImages'
 
     map_image_id_to_filename = read_image_id_to_filename(dataset_name, test_set, data_root)
@@ -142,7 +142,8 @@ def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data
             y2 = int(boxes[i][3])
             label = int(targets_copy[idx_result]['labels'][i])
             color = gt_colors.get(label, (0, 0, 0))  # Fallback to black
-            # print('eee', label, n_introduce_classes)
+            if label == 80: color = (255, 0, 0) # Hardcode for now
+            
             if label >= n_introduce_classes: 
                 _text = 'unknown'
             else: 
@@ -153,10 +154,9 @@ def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data
                                      cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
 
         # Draw the predicted bounding boxes
-        np_img_with_known_pred = np_img.copy()
-        np_img_with_unknown_pred = np_img.copy()
+        np_img_with_pred = np_img.copy()
         for i in range(len(results_after_process[idx_result]['boxes'])):
-            if results_after_process[idx_result]['scores'][i] < threshold: continue
+            # if results_after_process[idx_result]['scores'][i] < threshold: continue
             label = int(results_after_process[idx_result]['labels'][i])
             x1 = int(results_after_process[idx_result]['boxes'][i][0])
             y1 = int(results_after_process[idx_result]['boxes'][i][1])
@@ -165,20 +165,16 @@ def draw_pred_boxes(results_after_process, targets, dataset_name, test_set, data
             
             # Get lighter color for predictions
             color = pred_colors.get(label, (0, 0, 0))  # Fallback to black
+            if label == 80: color = (255, 0, 0) # Hardcode for now
             
             _text = dataset_VOC_COCO_CLASS_NAMES[label]
             _text += ' ' + str(float(results_after_process[idx_result]['scores'][i]))[:5]
             
-            if dataset_VOC_COCO_CLASS_NAMES[label] == 'unknown':
-                np_img_with_unknown_pred = cv2.rectangle(np_img_with_unknown_pred, (x1, y1), (x2, y2), (255,0,0), 2)
-                # np_img_with_unknown_pred = cv2.putText(np_img_with_unknown_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
-            else:
-                np_img_with_known_pred = cv2.rectangle(np_img_with_known_pred, (x1, y1), (x2, y2), color, 2)
-                # np_img_with_known_pred = cv2.putText(np_img_with_known_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
-        # np_img_with_known_pred = cv2.putText(np_img_with_known_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
-        # np_img_with_unknown_pred = cv2.putText(np_img_with_unknown_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
+            np_img_with_pred = cv2.rectangle(np_img_with_pred, (x1, y1), (x2, y2), color, 2)
+            np_img_with_pred = cv2.putText(np_img_with_pred, _text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
+        # np_img_with_pred = cv2.putText(np_img_with_pred, 'threshold=' + str(threshold), (20,20), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 1, cv2.LINE_AA)
         
-        np_img = np.hstack((np_img_with_gt, np_img_with_known_pred, np_img_with_unknown_pred))
+        np_img = np.hstack((np_img_with_gt, np_img_with_pred))
         
         cv2.imwrite(os.path.join(save_folder, img_name.replace('.jpg', '_with_bb.jpg')), np_img)
         if draw_bb_verbose: print('Save draw predicted boxes on image', os.path.join(save_folder, img_name.replace('.jpg', '_with_bb.jpg')))
